@@ -142,7 +142,7 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
   const remainingItems = exitingItem ? items.filter((item) => item !== exitingItem) : items
   const previousItems = enteringItem ? items.filter((item) => item !== enteringItem) : items
   const renderedItems = exitingItem
-    ? [...remainingItems, exitingItem]
+    ? [exitingItem, ...remainingItems]
     : enteringItem
       ? [...previousItems, enteringItem]
       : items
@@ -153,11 +153,14 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
     if (exitingItem) {
       if (item === exitingItem) {
         const center = (current.start + current.end) / 2
-        const closingProgress = Math.min(1, easedLayoutProgress / .76)
-        return mixBounds(current, { start: center, end: center + .001 }, closingProgress)
+        const rawClosure = boundsAt(index % remainingItems.length, remainingItems.length).start
+        const closure = rawClosure + Math.round((center - rawClosure) / 360) * 360
+        const closingProgress = Math.min(1, easedLayoutProgress / .28)
+        return mixBounds(current, { start: closure, end: closure + .001 }, closingProgress)
       }
       const targetIndex = remainingItems.indexOf(item)
-      return mixBounds(current, boundsAt(targetIndex, remainingItems.length), easedLayoutProgress)
+      const reflowProgress = Math.max(0, Math.min(1, (easedLayoutProgress - .08) / .8))
+      return mixBounds(current, boundsAt(targetIndex, remainingItems.length), reflowProgress)
     }
 
     if (enteringItem) {
@@ -273,7 +276,14 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
               const point = polar(items.length > 18 ? 155 : 150, animatedAngle)
               const normalizedAngle = (animatedAngle % 360 + 360) % 360
               const readableAngle = normalizedAngle > 90 && normalizedAngle < 270 ? animatedAngle + 180 : animatedAngle
-              const radians = (animatedAngle * Math.PI) / 180
+              let motionAngle = animatedAngle
+              if (item === exitingItem && remainingItems.length) {
+                const current = boundsAt(index, items.length)
+                const center = (current.start + current.end) / 2
+                const rawClosure = boundsAt(index % remainingItems.length, remainingItems.length).start
+                motionAngle = rawClosure + Math.round((center - rawClosure) / 360) * 360
+              }
+              const radians = (motionAngle * Math.PI) / 180
               const colorIndex = colorByItem.current.get(item) ?? index % COLORS.length
               const color = COLORS[colorIndex]
               const tileStyle = {
@@ -283,6 +293,10 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
                 '--pop-y': `${Math.sin(radians) * 13}px`,
                 '--fly-x': `${Math.cos(radians) * 175}px`,
                 '--fly-y': `${Math.sin(radians) * 175}px`,
+                '--exit-x': `${Math.cos(radians) * 105}px`,
+                '--exit-y': `${Math.sin(radians) * 105}px`,
+                '--exit-far-x': `${Math.cos(radians) * 205}px`,
+                '--exit-far-y': `${Math.sin(radians) * 205}px`,
                 '--sector-glow': color.glow,
               } as CSSProperties
               const path = sectorPath(start, end)

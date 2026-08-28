@@ -101,9 +101,9 @@ kbd { border: 1px solid rgba(255,255,255,.2); background: #171922; border-radius
 @keyframes pointerTension { from { box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 18px rgba(70,238,181,.18), 0 10px 28px rgba(0,0,0,.48); } to { box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 30px rgba(70,238,181,.38), 0 10px 28px rgba(0,0,0,.48); } }
 @keyframes sectorFlyOut {
   0% { transform: translate(0, 0) scale(1); opacity: 1; filter: drop-shadow(0 0 0 transparent); }
-  24% { transform: translate(var(--lift-x), var(--lift-y)) scale(1.035); opacity: 1; filter: drop-shadow(0 0 12px var(--sector-glow)) drop-shadow(0 0 25px var(--sector-glow)); }
-  42% { transform: translate(var(--pop-x), var(--pop-y)) scale(1.045); opacity: 1; filter: drop-shadow(0 0 18px var(--sector-glow)) drop-shadow(0 0 35px var(--sector-glow)); }
-  100% { transform: translate(var(--fly-x), var(--fly-y)) scale(.82); opacity: 0; filter: drop-shadow(0 0 24px var(--sector-glow)); }
+  18% { transform: translate(var(--lift-x), var(--lift-y)) scale(1.025); opacity: 1; filter: drop-shadow(0 0 12px var(--sector-glow)) drop-shadow(0 0 24px var(--sector-glow)); }
+  62% { transform: translate(var(--exit-x), var(--exit-y)) scale(.88); opacity: .82; filter: drop-shadow(0 0 15px var(--sector-glow)) drop-shadow(0 0 28px var(--sector-glow)); }
+  100% { transform: translate(var(--exit-far-x), var(--exit-far-y)) scale(.72); opacity: 0; filter: drop-shadow(0 0 16px var(--sector-glow)); }
 }
 @keyframes sectorFlyIn {
   0% { transform: translate(var(--fly-x), var(--fly-y)) scale(.82); opacity: 0; filter: drop-shadow(0 0 24px var(--sector-glow)); }
