@@ -70,9 +70,16 @@ export function App() {
   const [resizingPanel, setResizingPanel] = useState(false)
   const [lastMath, setLastMath] = useState<SelectionMath | null>(null)
   const spinGuard = useRef(false)
+  const wheelRemovalTimer = useRef<number | null>(null)
 
   const options = useMemo(() => parseOptions(text), [text])
   const activeOptions = useMemo(() => options.filter((item) => !eliminated.has(item)), [options, eliminated])
+
+  const cancelWheelRemoval = () => {
+    if (wheelRemovalTimer.current === null) return
+    window.clearTimeout(wheelRemovalTimer.current)
+    wheelRemovalTimer.current = null
+  }
 
   useEffect(() => {
     const stopCapture = startInteractionEntropyCapture()
@@ -104,6 +111,7 @@ export function App() {
 
   const spin = async () => {
     if (spinGuard.current || spinning || waiting || !activeOptions.length) return
+    cancelWheelRemoval()
     if (activeOptions.length === 1) {
       setWheelItems(activeOptions)
       setWinner(activeOptions[0])
@@ -128,7 +136,9 @@ export function App() {
       // point, duration and inertia distance are independent Web Crypto draws.
       const landingOffset = (randomIntInclusive(-3_200, 3_200) / 10_000) * slice
       const target = -(result.index + 0.5) * slice + landingOffset
-      const duration = randomIntInclusive(7_500, 13_500)
+      const duration = activeOptions.length === 2
+        ? randomIntInclusive(15_000, 20_000)
+        : randomIntInclusive(7_500, 13_500)
       const inertiaTurns = Math.max(6, Math.round(duration / 1_150)) + randomIntInclusive(0, 2)
       const turns = Math.ceil((rotation - target) / 360) + inertiaTurns
       setReport(result.report)
@@ -154,7 +164,15 @@ export function App() {
     setPendingWinner(null)
     setWinner(selected)
     setHistory((items) => [{ name: selected, removed, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }, ...items].slice(0, 20))
-    if (removed) setEliminated((items) => new Set(items).add(selected))
+    if (removed) {
+      setEliminated((items) => new Set(items).add(selected))
+      // Let the winning tile lift first, then remove it from the rendered wheel.
+      cancelWheelRemoval()
+      wheelRemovalTimer.current = window.setTimeout(() => {
+        setWheelItems((items) => items.filter((item) => item !== selected))
+        wheelRemovalTimer.current = null
+      }, 700)
+    }
     spinGuard.current = false
   }
 
@@ -166,6 +184,7 @@ export function App() {
   }, [spinning, pendingWinner, spinDuration])
 
   const updateText = (value: string) => {
+    cancelWheelRemoval()
     setText(value)
     setWheelItems(parseOptions(value))
     setEliminated(new Set())
@@ -174,6 +193,7 @@ export function App() {
   }
 
   const reset = () => {
+    cancelWheelRemoval()
     setEliminated(new Set())
     setWinner(null)
     setPendingWinner(null)
@@ -184,6 +204,7 @@ export function App() {
 
   const shuffle = async () => {
     if (spinning || waiting) return
+    cancelWheelRemoval()
     setWaiting(true)
     setError(null)
     try {
@@ -201,9 +222,26 @@ export function App() {
     }
   }
 
+  const excludeOption = (item: string) => {
+    if (eliminated.has(item) || spinning || waiting) return
+    cancelWheelRemoval()
+    const next = new Set(eliminated).add(item)
+    setEliminated(next)
+    setWheelItems(options.filter((option) => !next.has(option)))
+  }
+
+  const restoreOption = (item: string) => {
+    if (!eliminated.has(item) || spinning || waiting) return
+    cancelWheelRemoval()
+    const next = new Set(eliminated)
+    next.delete(item)
+    setEliminated(next)
+    setWheelItems(options.filter((option) => !next.has(option)))
+  }
+
   const crossOutWinner = () => {
-    if (!winner || eliminated.has(winner) || spinning || waiting) return
-    setEliminated((items) => new Set(items).add(winner))
+    if (!winner) return
+    excludeOption(winner)
   }
 
   useEffect(() => {
@@ -266,7 +304,16 @@ export function App() {
           </div>
 
           <div className="wheel-area">
-            <Wheel items={wheelItems} rotation={rotation} duration={spinDuration} spinning={spinning} waiting={waiting} onSpin={() => void spin()} onFinished={finishSpin} />
+            <Wheel
+              items={wheelItems}
+              rotation={rotation}
+              duration={spinDuration}
+              spinning={spinning}
+              selectedIndex={winner ? wheelItems.indexOf(winner) : null}
+              waiting={waiting}
+              onSpin={() => void spin()}
+              onFinished={finishSpin}
+            />
             <div className="wheel-status" aria-live="polite">
               {waiting && <><span className="status-spinner" /> Собираем энтропию…</>}
               {spinning && <>Колесо решает…</>}
@@ -317,9 +364,9 @@ export function App() {
                   <span className="option-number">{String(index + 1).padStart(2, '0')}</span>
                   <span className="option-name">{item}</span>
                   {isEliminated ? (
-                    <button className="restore-option" type="button" title="Вернуть вариант" aria-label={`Вернуть ${item}`} onClick={() => setEliminated((current) => { const next = new Set(current); next.delete(item); return next })}>↩</button>
+                    <button className="restore-option" type="button" title="Вернуть вариант" aria-label={`Вернуть ${item}`} disabled={spinning || waiting} onClick={() => restoreOption(item)}>↩</button>
                   ) : (
-                    <button className="exclude-option" type="button" title="Зачеркнуть вариант" aria-label={`Зачеркнуть ${item}`} onClick={() => setEliminated((current) => new Set(current).add(item))}>╱</button>
+                    <button className="exclude-option" type="button" title="Зачеркнуть вариант" aria-label={`Зачеркнуть ${item}`} disabled={spinning || waiting} onClick={() => excludeOption(item)}>╱</button>
                   )}
                 </div>
               })}

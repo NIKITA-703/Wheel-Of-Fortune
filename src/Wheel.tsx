@@ -5,6 +5,7 @@ type WheelProps = {
   rotation: number
   duration: number
   spinning: boolean
+  selectedIndex: number | null
   waiting: boolean
   onSpin: () => void
   onFinished: () => void
@@ -40,7 +41,7 @@ const shortLabel = (label: string, total: number) => {
   return label.length > limit ? `${label.slice(0, limit - 1)}…` : label
 }
 
-export function Wheel({ items, rotation, duration, spinning, waiting, onSpin, onFinished }: WheelProps) {
+export function Wheel({ items, rotation, duration, spinning, selectedIndex, waiting, onSpin, onFinished }: WheelProps) {
   const filterId = useId().replaceAll(':', '')
   const wheelRef = useRef<HTMLDivElement>(null)
   const previousRotation = useRef(rotation)
@@ -132,7 +133,11 @@ export function Wheel({ items, rotation, duration, spinning, waiting, onSpin, on
               } as CSSProperties
               const path = sectorPath(start, end)
               return (
-                <g key={`${item}-${index}`} className="wheel-sector-tile" style={tileStyle}>
+                <g
+                  key={`${item}-${index}`}
+                  className={`wheel-sector-tile ${!spinning && selectedIndex === index ? 'is-selected' : ''}`}
+                  style={tileStyle}
+                >
                   <path d={path} fill={`url(#${filterId}-sector-${index % COLORS.length})`} className="wheel-sector" />
                   <path d={path} className="wheel-sector-line" />
                   <text

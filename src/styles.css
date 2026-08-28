@@ -57,9 +57,12 @@ h1 span { color: #717686; }
 .wheel-sector-tile { transform-box: view-box; transform-origin: 250px 250px; transition: transform .24s cubic-bezier(.2,.8,.2,1), filter .24s ease, opacity .24s ease; }
 .wheel-sector { stroke: #090c13; stroke-width: 5; stroke-linejoin: round; }
 .wheel-sector-line { fill: none; stroke: rgba(230,241,250,.3); stroke-width: 1.15; stroke-linejoin: round; pointer-events: none; }
-.wheel-shell:not(.is-active) .wheel-sector-tile:hover { transform: translate(var(--lift-x), var(--lift-y)) scale(1.022); filter: drop-shadow(0 0 10px var(--sector-glow)) drop-shadow(0 0 22px var(--sector-glow)); }
-.wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-sector-line { stroke: rgba(255,255,255,.58); stroke-width: 1.45; }
-.wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-label { fill: #fff; }
+.wheel-shell:not(.is-active) .wheel-sector-tile:hover,
+.wheel-shell:not(.is-active) .wheel-sector-tile.is-selected { transform: translate(var(--lift-x), var(--lift-y)) scale(1.022); filter: drop-shadow(0 0 10px var(--sector-glow)) drop-shadow(0 0 22px var(--sector-glow)); }
+.wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-sector-line,
+.wheel-shell:not(.is-active) .wheel-sector-tile.is-selected .wheel-sector-line { stroke: rgba(255,255,255,.58); stroke-width: 1.45; }
+.wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-label,
+.wheel-shell:not(.is-active) .wheel-sector-tile.is-selected .wheel-label { fill: #fff; }
 .wheel-shell.is-active .wheel-sector-tile { pointer-events: none; }
 .wheel-inner-light, .wheel-glass { pointer-events: none; }
 .wheel-glass { stroke: rgba(207,222,235,.2); stroke-width: 1.5; }
