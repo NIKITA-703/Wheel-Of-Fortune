@@ -51,6 +51,8 @@ export function App() {
   const [eliminated, setEliminated] = useState<Set<string>>(() => new Set())
   const [winner, setWinner] = useState<string | null>(null)
   const [pendingWinner, setPendingWinner] = useState<string | null>(null)
+  const [exitingItem, setExitingItem] = useState<string | null>(null)
+  const [enteringItem, setEnteringItem] = useState<string | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [rotation, setRotation] = useState(0)
   const [pointerAngle, setPointerAngle] = useState(0)
@@ -75,11 +77,13 @@ export function App() {
 
   const options = useMemo(() => parseOptions(text), [text])
   const activeOptions = useMemo(() => options.filter((item) => !eliminated.has(item)), [options, eliminated])
+  const wheelTransitioning = exitingItem !== null || enteringItem !== null
 
   const cancelWheelRemoval = () => {
-    if (wheelRemovalTimer.current === null) return
-    window.clearTimeout(wheelRemovalTimer.current)
+    if (wheelRemovalTimer.current !== null) window.clearTimeout(wheelRemovalTimer.current)
     wheelRemovalTimer.current = null
+    setExitingItem(null)
+    setEnteringItem(null)
   }
 
   useEffect(() => {
@@ -111,7 +115,7 @@ export function App() {
   }, [resizingPanel])
 
   const spin = async () => {
-    if (spinGuard.current || spinning || waiting || !activeOptions.length) return
+    if (spinGuard.current || spinning || waiting || wheelTransitioning || !activeOptions.length) return
     cancelWheelRemoval()
     if (activeOptions.length === 1) {
       setWheelItems(activeOptions)
@@ -167,12 +171,14 @@ export function App() {
     setHistory((items) => [{ name: selected, removed, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }, ...items].slice(0, 20))
     if (removed) {
       setEliminated((items) => new Set(items).add(selected))
-      // Let the winning tile lift first, then remove it from the rendered wheel.
+      // The winning tile lifts and flies away before the wheel layout closes.
       cancelWheelRemoval()
+      setExitingItem(selected)
       wheelRemovalTimer.current = window.setTimeout(() => {
         setWheelItems((items) => items.filter((item) => item !== selected))
+        setExitingItem(null)
         wheelRemovalTimer.current = null
-      }, 700)
+      }, 1_050)
     }
     spinGuard.current = false
   }
@@ -204,7 +210,7 @@ export function App() {
   }
 
   const shuffle = async () => {
-    if (spinning || waiting) return
+    if (spinning || waiting || wheelTransitioning) return
     cancelWheelRemoval()
     setWaiting(true)
     setError(null)
@@ -224,20 +230,30 @@ export function App() {
   }
 
   const excludeOption = (item: string) => {
-    if (eliminated.has(item) || spinning || waiting) return
+    if (eliminated.has(item) || activeOptions.length <= 1 || spinning || waiting || wheelTransitioning) return
     cancelWheelRemoval()
     const next = new Set(eliminated).add(item)
     setEliminated(next)
-    setWheelItems(options.filter((option) => !next.has(option)))
+    setExitingItem(item)
+    wheelRemovalTimer.current = window.setTimeout(() => {
+      setWheelItems(options.filter((option) => !next.has(option)))
+      setExitingItem(null)
+      wheelRemovalTimer.current = null
+    }, 1_050)
   }
 
   const restoreOption = (item: string) => {
-    if (!eliminated.has(item) || spinning || waiting) return
+    if (!eliminated.has(item) || spinning || waiting || wheelTransitioning) return
     cancelWheelRemoval()
     const next = new Set(eliminated)
     next.delete(item)
     setEliminated(next)
     setWheelItems(options.filter((option) => !next.has(option)))
+    setEnteringItem(item)
+    wheelRemovalTimer.current = window.setTimeout(() => {
+      setEnteringItem(null)
+      wheelRemovalTimer.current = null
+    }, 1_100)
   }
 
   const crossOutWinner = () => {
@@ -311,6 +327,9 @@ export function App() {
               duration={spinDuration}
               spinning={spinning}
               selectedIndex={winner ? wheelItems.indexOf(winner) : null}
+              exitingItem={exitingItem}
+              enteringItem={enteringItem}
+              transitioning={wheelTransitioning}
               pointerAngle={pointerAngle}
               onPointerAngleChange={setPointerAngle}
               waiting={waiting}
@@ -350,13 +369,13 @@ export function App() {
           </div>
 
           <div className={`mode-switch is-${mode}`} role="group" aria-label="Режим колеса">
-            <button className={mode === 'elimination' ? 'active' : ''} type="button" disabled={spinning || waiting} onClick={() => { setMode('elimination'); reset() }}>На выбывание</button>
-            <button className={mode === 'single' ? 'active' : ''} type="button" disabled={spinning || waiting} onClick={() => { setMode('single'); reset() }}>Один выбор</button>
+            <button className={mode === 'elimination' ? 'active' : ''} type="button" disabled={spinning || waiting || wheelTransitioning} onClick={() => { setMode('elimination'); reset() }}>На выбывание</button>
+            <button className={mode === 'single' ? 'active' : ''} type="button" disabled={spinning || waiting || wheelTransitioning} onClick={() => { setMode('single'); reset() }}>Один выбор</button>
           </div>
 
           {editing ? <>
             <label className="input-label" htmlFor="options">По одному варианту на строку</label>
-            <textarea id="options" value={text} onChange={(event) => updateText(event.target.value)} disabled={spinning || waiting} spellCheck="false" autoFocus />
+            <textarea id="options" value={text} onChange={(event) => updateText(event.target.value)} disabled={spinning || waiting || wheelTransitioning} spellCheck="false" autoFocus />
             <div className="text-meta"><span>Пустые строки и дубли пропускаются</span><span>до 100</span></div>
           </> : <>
             <div className="input-label">Текущий список</div>
@@ -367,9 +386,9 @@ export function App() {
                   <span className="option-number">{String(index + 1).padStart(2, '0')}</span>
                   <span className="option-name">{item}</span>
                   {isEliminated ? (
-                    <button className="restore-option" type="button" title="Вернуть вариант" aria-label={`Вернуть ${item}`} disabled={spinning || waiting} onClick={() => restoreOption(item)}>↩</button>
+                    <button className="restore-option" type="button" title="Вернуть вариант" aria-label={`Вернуть ${item}`} disabled={spinning || waiting || wheelTransitioning} onClick={() => restoreOption(item)}>↩</button>
                   ) : (
-                    <button className="exclude-option" type="button" title="Зачеркнуть вариант" aria-label={`Зачеркнуть ${item}`} disabled={spinning || waiting} onClick={() => excludeOption(item)}>╱</button>
+                    <button className="exclude-option" type="button" title="Зачеркнуть вариант" aria-label={`Зачеркнуть ${item}`} disabled={activeOptions.length <= 1 || spinning || waiting || wheelTransitioning} onClick={() => excludeOption(item)}>╱</button>
                   )}
                 </div>
               })}
@@ -378,8 +397,8 @@ export function App() {
           </>}
 
           <div className="action-grid">
-            <button className="secondary-button" type="button" onClick={() => void shuffle()} disabled={options.length < 2 || spinning || waiting}><Icon>↝</Icon> Перетасовать</button>
-            <button className="secondary-button" type="button" onClick={reset} disabled={spinning || waiting}><Icon>↺</Icon> Вернуть все</button>
+            <button className="secondary-button" type="button" onClick={() => void shuffle()} disabled={options.length < 2 || spinning || waiting || wheelTransitioning}><Icon>↝</Icon> Перетасовать</button>
+            <button className="secondary-button" type="button" onClick={reset} disabled={spinning || waiting || wheelTransitioning}><Icon>↺</Icon> Вернуть все</button>
           </div>
 
           <div className="source-setting">

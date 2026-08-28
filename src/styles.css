@@ -64,7 +64,12 @@ h1 span { color: #717686; }
 .wheel-shell:not(.is-active) .wheel-sector-tile.is-selected .wheel-sector-line { stroke: rgba(255,255,255,.58); stroke-width: 1.45; }
 .wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-label,
 .wheel-shell:not(.is-active) .wheel-sector-tile.is-selected .wheel-label { fill: #fff; }
+.wheel-sector-tile.is-exiting { pointer-events: none; animation: sectorFlyOut 1.05s cubic-bezier(.2,.72,.22,1) forwards; }
+.wheel-sector-tile.is-entering { pointer-events: none; animation: sectorFlyIn .7s .35s cubic-bezier(.16,.78,.2,1) both; }
+.wheel-sector-tile.is-exiting .wheel-sector-line,
+.wheel-sector-tile.is-entering .wheel-sector-line { stroke: rgba(255,255,255,.68); stroke-width: 1.6; }
 .wheel-shell.is-active .wheel-sector-tile { pointer-events: none; }
+.wheel-shell.is-transitioning .wheel-sector-tile { pointer-events: none; }
 .wheel-inner-light, .wheel-glass { pointer-events: none; }
 .wheel-glass { stroke: rgba(207,222,235,.2); stroke-width: 1.5; }
 .wheel-label { fill: rgba(255,255,255,.95); font-weight: 800; letter-spacing: -.03em; paint-order: stroke; stroke: rgba(0,0,0,.22); stroke-width: 2px; stroke-linejoin: round; pointer-events: none; transition: fill .2s ease; }
@@ -94,6 +99,18 @@ kbd { border: 1px solid rgba(255,255,255,.2); background: #171922; border-radius
 @keyframes buttonPulse { 0%, 100% { box-shadow: 0 0 0 6px rgba(7,9,14,.88), 0 0 0 8px rgba(84,239,190,.12), 0 0 22px rgba(73,238,184,.42), 0 0 45px rgba(63,143,255,.18), inset 0 2px 2px rgba(255,255,255,.62), inset 0 -5px 12px rgba(20,80,100,.2); } 50% { box-shadow: 0 0 0 6px rgba(7,9,14,.88), 0 0 0 10px rgba(84,239,190,.2), 0 0 34px rgba(73,238,184,.63), 0 0 64px rgba(63,143,255,.3), inset 0 2px 2px rgba(255,255,255,.68), inset 0 -5px 12px rgba(20,80,100,.16); } }
 @keyframes wheelAura { 0%, 100% { opacity: .72; transform: scale(.98); } 50% { opacity: 1; transform: scale(1.025); } }
 @keyframes pointerTension { from { box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 18px rgba(70,238,181,.18), 0 10px 28px rgba(0,0,0,.48); } to { box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 30px rgba(70,238,181,.38), 0 10px 28px rgba(0,0,0,.48); } }
+@keyframes sectorFlyOut {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; filter: drop-shadow(0 0 0 transparent); }
+  24% { transform: translate(var(--lift-x), var(--lift-y)) scale(1.035); opacity: 1; filter: drop-shadow(0 0 12px var(--sector-glow)) drop-shadow(0 0 25px var(--sector-glow)); }
+  42% { transform: translate(var(--pop-x), var(--pop-y)) scale(1.045); opacity: 1; filter: drop-shadow(0 0 18px var(--sector-glow)) drop-shadow(0 0 35px var(--sector-glow)); }
+  100% { transform: translate(var(--fly-x), var(--fly-y)) scale(.82); opacity: 0; filter: drop-shadow(0 0 24px var(--sector-glow)); }
+}
+@keyframes sectorFlyIn {
+  0% { transform: translate(var(--fly-x), var(--fly-y)) scale(.82); opacity: 0; filter: drop-shadow(0 0 24px var(--sector-glow)); }
+  62% { transform: translate(var(--pop-x), var(--pop-y)) scale(1.045); opacity: 1; filter: drop-shadow(0 0 18px var(--sector-glow)) drop-shadow(0 0 34px var(--sector-glow)); }
+  82% { transform: translate(var(--lift-x), var(--lift-y)) scale(1.025); opacity: 1; filter: drop-shadow(0 0 11px var(--sector-glow)); }
+  100% { transform: translate(0, 0) scale(1); opacity: 1; filter: drop-shadow(0 0 0 transparent); }
+}
 
 .result-space { width: 100%; margin-top: clamp(30px, 8vh, 95px); }
 .winner-card, .error-card { width: 100%; margin-top: 10px; border-radius: 16px; animation: reveal .35s ease both; }
