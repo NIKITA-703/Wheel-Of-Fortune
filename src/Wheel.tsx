@@ -153,10 +153,8 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
     if (exitingItem) {
       if (item === exitingItem) {
         const center = (current.start + current.end) / 2
-        const rawClosure = boundsAt(index % remainingItems.length, remainingItems.length).start
-        const closure = rawClosure + Math.round((center - rawClosure) / 360) * 360
         const closingProgress = Math.min(1, easedLayoutProgress / .28)
-        return mixBounds(current, { start: closure - 1.525, end: closure + 1.525 }, closingProgress)
+        return mixBounds(current, { start: center - 1.525, end: center + 1.525 }, closingProgress)
       }
       const targetIndex = remainingItems.indexOf(item)
       const reflowProgress = Math.max(0, Math.min(1, (easedLayoutProgress - .08) / .8))
@@ -277,11 +275,9 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
               const normalizedAngle = (animatedAngle % 360 + 360) % 360
               const readableAngle = normalizedAngle > 90 && normalizedAngle < 270 ? animatedAngle + 180 : animatedAngle
               let motionAngle = animatedAngle
-              if (item === exitingItem && remainingItems.length) {
+              if (item === exitingItem) {
                 const current = boundsAt(index, items.length)
-                const center = (current.start + current.end) / 2
-                const rawClosure = boundsAt(index % remainingItems.length, remainingItems.length).start
-                motionAngle = rawClosure + Math.round((center - rawClosure) / 360) * 360
+                motionAngle = (current.start + current.end) / 2
               }
               const radians = (motionAngle * Math.PI) / 180
               const colorIndex = colorByItem.current.get(item) ?? index % COLORS.length
