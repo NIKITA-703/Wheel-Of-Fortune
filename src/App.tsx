@@ -4,7 +4,7 @@ import {
   geolocationEntropyProvider,
   microphoneEntropyProvider,
   secureRandomIndex,
-  secureShuffle,
+  secureShuffleWithEntropy,
   startInteractionEntropyCapture,
   type EntropyProvider,
   type EntropyReport,
@@ -169,10 +169,22 @@ export function App() {
     setError(null)
   }
 
-  const shuffle = () => {
+  const shuffle = async () => {
     if (spinning || waiting) return
-    setText(secureShuffle(options).join('\n'))
-    setWinner(null)
+    setWaiting(true)
+    setError(null)
+    try {
+      const result = await secureShuffleWithEntropy(options, {
+        includeNetwork: networkEnabled,
+        timeoutMs: 2_500,
+      })
+      setText(result.items.join('\n'))
+      setWinner(null)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Не удалось перетасовать список')
+    } finally {
+      setWaiting(false)
+    }
   }
 
   const crossOutWinner = () => {
@@ -258,7 +270,9 @@ export function App() {
           <div className="panel-heading">
             <div><span className="panel-kicker">Настройка</span><h2>Варианты</h2></div>
             <div className="panel-heading-actions">
-              <button type="button" onClick={() => setEditing((value) => !value)}>{editing ? 'Готово' : 'Изменить'}</button>
+              <button className={`edit-button ${editing ? 'is-done' : ''}`} type="button" onClick={() => setEditing((value) => !value)}>
+                <span>{editing ? '✓' : '✎'}</span>{editing ? 'Готово' : 'Изменить'}
+              </button>
               <span className="count-badge">{activeOptions.length} / {options.length}</span>
             </div>
           </div>
@@ -280,7 +294,11 @@ export function App() {
                 return <div key={item} className={isEliminated ? 'eliminated' : ''}>
                   <span className="option-number">{String(index + 1).padStart(2, '0')}</span>
                   <span className="option-name">{item}</span>
-                  {isEliminated && <button type="button" title="Вернуть вариант" onClick={() => setEliminated((current) => { const next = new Set(current); next.delete(item); return next })}>↩</button>}
+                  {isEliminated ? (
+                    <button className="restore-option" type="button" title="Вернуть вариант" aria-label={`Вернуть ${item}`} onClick={() => setEliminated((current) => { const next = new Set(current); next.delete(item); return next })}>↩</button>
+                  ) : (
+                    <button className="exclude-option" type="button" title="Зачеркнуть вариант" aria-label={`Зачеркнуть ${item}`} onClick={() => setEliminated((current) => new Set(current).add(item))}>╱</button>
+                  )}
                 </div>
               })}
             </div>
@@ -288,7 +306,7 @@ export function App() {
           </>}
 
           <div className="action-grid">
-            <button className="secondary-button" type="button" onClick={shuffle} disabled={options.length < 2 || spinning || waiting}><Icon>↝</Icon> Перетасовать</button>
+            <button className="secondary-button" type="button" onClick={() => void shuffle()} disabled={options.length < 2 || spinning || waiting}><Icon>↝</Icon> Перетасовать</button>
             <button className="secondary-button" type="button" onClick={reset} disabled={spinning || waiting}><Icon>↺</Icon> Вернуть все</button>
           </div>
 
@@ -326,15 +344,13 @@ export function App() {
               <span>Математика выбора</span>
               {lastMath ? <>
                 <strong>Шанс каждого сектора: 1 / {lastMath.range} = {(100 / lastMath.range).toFixed(4)}%</strong>
-                <div className="math-values">
-                  <div><small>Количество секторов</small><b>N = {lastMath.range}</b></div>
-                  <div><small>Случайное UInt32</small><b>x = {lastMath.candidate.toLocaleString('ru')}</b></div>
-                  <div><small>Допустимая граница</small><b>{lastMath.candidate.toLocaleString('ru')} &lt; {lastMath.acceptanceLimit.toLocaleString('ru')} ✓</b></div>
-                  <div><small>Подстановка</small><b>{lastMath.candidate.toLocaleString('ru')} mod {lastMath.range} = {lastMath.offset}</b></div>
-                  <div><small>Выбранный сектор</small><b>index {lastMath.offset} → сектор №{lastMath.offset + 1}</b></div>
-                  <div><small>Отброшено попыток</small><b>{lastMath.rejectedDraws}</b></div>
+                <div className="math-steps">
+                  <div><i>1</i><span><small>Получаем число</small><b>Web Crypto и источники дали <em>{lastMath.candidate.toLocaleString('ru')}</em></b><p>Это число из диапазона от 0 до 4 294 967 295.</p></span></div>
+                  <div><i>2</i><span><small>Проверяем честный диапазон</small><b><em>{lastMath.candidate.toLocaleString('ru')}</em> меньше {lastMath.acceptanceLimit.toLocaleString('ru')} — принимаем ✓</b><p>Повторных попыток: {lastMath.rejectedDraws}. Из края диапазона исключено: {lastMath.rejectedValues}.</p></span></div>
+                  <div><i>3</i><span><small>Находим позицию в списке</small><b>{lastMath.candidate.toLocaleString('ru')} ÷ {lastMath.range}: остаток <em>{lastMath.offset}</em></b><p>Счёт начинается с нуля, поэтому это сектор №{lastMath.offset + 1}.</p></span></div>
                 </div>
-                <small>Из верхнего края UInt32 исключено {lastMath.rejectedValues} знач.: это убирает modulo bias и сохраняет одинаковый шанс.</small>
+                <div className="math-result"><span>Итоговый выбор</span><strong>№{lastMath.offset + 1} · {winner ?? pendingWinner ?? 'ожидаем остановку колеса'}</strong></div>
+                <small>Отбрасывание края диапазона убирает modulo bias: каждый из {lastMath.range} вариантов имеет строго одинаковый шанс.</small>
               </> : <strong>Появится после вращения</strong>}
             </div>
             <label>SHA-256 отпечаток</label><code>{report.digestHex}</code>

@@ -560,6 +560,28 @@ export const secureShuffle = <T>(items: readonly T[]): T[] => {
   return result
 }
 
+/**
+ * Auditable Fisher-Yates shuffle rooted in the same two-pass entropy pool as a
+ * final wheel selection. Network sources are collected once, not per swap.
+ */
+export const secureShuffleWithEntropy = async <T>(
+  items: readonly T[],
+  options: RandomEngineOptions = {},
+): Promise<{ items: T[]; report: EntropyReport }> => {
+  const result = [...items]
+  if (result.length < 2) {
+    const { report } = await collectEntropy(options)
+    return { items: result, report }
+  }
+  const { pool, report } = await collectEntropy(options)
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const roundPool = await sha256('wheel-random/shuffle-round/v2', pool, String(index))
+    const math = await unbiasedFromPool(index + 1, roundPool, `wheel-random/shuffle-expand/${index}/v2`)
+    ;[result[index], result[math.offset]] = [result[math.offset], result[index]]
+  }
+  return { items: result, report }
+}
+
 /** Compatibility with the old dice API. */
 export const rollComplexDice = async (options: RandomEngineOptions = {}): Promise<DiceRoll> => {
   const { pool, report } = await collectEntropy(options)
