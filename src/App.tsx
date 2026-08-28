@@ -53,6 +53,7 @@ export function App() {
   const [pendingWinner, setPendingWinner] = useState<string | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [rotation, setRotation] = useState(0)
+  const [pointerAngle, setPointerAngle] = useState(0)
   const [wheelItems, setWheelItems] = useState<string[]>(() => parseOptions(loadText()))
   const [spinDuration, setSpinDuration] = useState(7_500)
   const [spinning, setSpinning] = useState(false)
@@ -132,10 +133,10 @@ export function App() {
         extraEntropyProviders,
       })
       const slice = 360 / activeOptions.length
-      // The selected sector is fixed by the audited draw, while the exact stop
-      // point, duration and inertia distance are independent Web Crypto draws.
+      // The audited draw fixes the selected sector. The user-set pointer angle
+      // only changes where it stops; it never changes which item was selected.
       const landingOffset = (randomIntInclusive(-3_200, 3_200) / 10_000) * slice
-      const target = -(result.index + 0.5) * slice + landingOffset
+      const target = pointerAngle - (result.index + 0.5) * slice + landingOffset
       const duration = activeOptions.length === 2
         ? randomIntInclusive(15_000, 20_000)
         : randomIntInclusive(7_500, 13_500)
@@ -310,6 +311,8 @@ export function App() {
               duration={spinDuration}
               spinning={spinning}
               selectedIndex={winner ? wheelItems.indexOf(winner) : null}
+              pointerAngle={pointerAngle}
+              onPointerAngleChange={setPointerAngle}
               waiting={waiting}
               onSpin={() => void spin()}
               onFinished={finishSpin}
@@ -317,7 +320,7 @@ export function App() {
             <div className="wheel-status" aria-live="polite">
               {waiting && <><span className="status-spinner" /> Собираем энтропию…</>}
               {spinning && <>Колесо решает…</>}
-              {!waiting && !spinning && activeOptions.length > 1 && <>Нажмите кнопку или <kbd>Space</kbd></>}
+              {!waiting && !spinning && activeOptions.length > 1 && <>Перетащите стрелку · нажмите кнопку или <kbd>Space</kbd></>}
               {!waiting && !spinning && activeOptions.length === 1 && <>Последний вариант определён</>}
             </div>
           </div>
@@ -346,9 +349,9 @@ export function App() {
             </div>
           </div>
 
-          <div className="mode-switch" role="group" aria-label="Режим колеса">
-            <button className={mode === 'elimination' ? 'active' : ''} type="button" onClick={() => { setMode('elimination'); reset() }}>На выбывание</button>
-            <button className={mode === 'single' ? 'active' : ''} type="button" onClick={() => { setMode('single'); reset() }}>Один выбор</button>
+          <div className={`mode-switch is-${mode}`} role="group" aria-label="Режим колеса">
+            <button className={mode === 'elimination' ? 'active' : ''} type="button" disabled={spinning || waiting} onClick={() => { setMode('elimination'); reset() }}>На выбывание</button>
+            <button className={mode === 'single' ? 'active' : ''} type="button" disabled={spinning || waiting} onClick={() => { setMode('single'); reset() }}>Один выбор</button>
           </div>
 
           {editing ? <>
@@ -425,6 +428,7 @@ export function App() {
                   <div><span>Полученное UInt32</span><code>{lastMath.candidate.toLocaleString('ru')}</code></div>
                   <div><span>Принимаем значения меньше</span><code>{lastMath.acceptanceLimit.toLocaleString('ru')}</code></div>
                   <div><span>Фактическое деление</span><code>{lastMath.candidate.toLocaleString('ru')} mod {lastMath.range} = {lastMath.offset}</code></div>
+                  <div><span>Положение стрелки</span><code>{pointerAngle.toFixed(2)}° из 360°</code></div>
                   <div><span>Исключено значений из хвоста</span><code>{lastMath.rejectedValues}</code></div>
                 </details>
               </> : <strong>Появится после вращения</strong>}

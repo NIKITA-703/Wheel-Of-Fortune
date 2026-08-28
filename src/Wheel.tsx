@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, type CSSProperties } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 
 type WheelProps = {
   items: string[]
@@ -6,6 +6,8 @@ type WheelProps = {
   duration: number
   spinning: boolean
   selectedIndex: number | null
+  pointerAngle: number
+  onPointerAngleChange: (angle: number) => void
   waiting: boolean
   onSpin: () => void
   onFinished: () => void
@@ -41,11 +43,13 @@ const shortLabel = (label: string, total: number) => {
   return label.length > limit ? `${label.slice(0, limit - 1)}…` : label
 }
 
-export function Wheel({ items, rotation, duration, spinning, selectedIndex, waiting, onSpin, onFinished }: WheelProps) {
+export function Wheel({ items, rotation, duration, spinning, selectedIndex, pointerAngle, onPointerAngleChange, waiting, onSpin, onFinished }: WheelProps) {
   const filterId = useId().replaceAll(':', '')
+  const shellRef = useRef<HTMLDivElement>(null)
   const wheelRef = useRef<HTMLDivElement>(null)
   const previousRotation = useRef(rotation)
   const finishCallback = useRef(onFinished)
+  const [draggingPointer, setDraggingPointer] = useState(false)
   const slice = items.length ? 360 / items.length : 360
 
   finishCallback.current = onFinished
@@ -79,9 +83,63 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, wait
     return () => animation.cancel()
   }, [rotation, duration, spinning, items.length])
 
+  const movePointer = (clientX: number, clientY: number) => {
+    const shell = shellRef.current
+    if (!shell) return
+    const bounds = shell.getBoundingClientRect()
+    const x = clientX - (bounds.left + bounds.width / 2)
+    const y = clientY - (bounds.top + bounds.height / 2)
+    const angle = (Math.atan2(y, x) * 180 / Math.PI + 90 + 360) % 360
+    onPointerAngleChange(Math.round(angle * 100) / 100)
+  }
+
+  const startPointerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (spinning || waiting) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setDraggingPointer(true)
+    movePointer(event.clientX, event.clientY)
+  }
+
+  const continuePointerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!draggingPointer) return
+    movePointer(event.clientX, event.clientY)
+  }
+
+  const finishPointerDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!draggingPointer) return
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    setDraggingPointer(false)
+  }
+
   return (
-    <div className={`wheel-shell ${spinning ? 'is-active' : ''}`}>
-      <div className="pointer" aria-hidden="true"><span /></div>
+    <div ref={shellRef} className={`wheel-shell ${spinning ? 'is-active' : ''}`}>
+      <div
+        className={`pointer-orbit ${draggingPointer ? 'is-dragging' : ''}`}
+        style={{ '--pointer-angle': `${pointerAngle}deg` } as CSSProperties}
+      >
+        <div
+          className="pointer"
+          role="slider"
+          tabIndex={spinning || waiting ? -1 : 0}
+          aria-label="Положение стрелки"
+          aria-valuemin={0}
+          aria-valuemax={360}
+          aria-valuenow={Math.round(pointerAngle)}
+          aria-disabled={spinning || waiting}
+          onPointerDown={startPointerDrag}
+          onPointerMove={continuePointerDrag}
+          onPointerUp={finishPointerDrag}
+          onPointerCancel={finishPointerDrag}
+          onKeyDown={(event) => {
+            if (spinning || waiting || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return
+            event.preventDefault()
+            const direction = event.key === 'ArrowRight' ? 1 : -1
+            const step = event.shiftKey ? 10 : 2
+            onPointerAngleChange((pointerAngle + direction * step + 360) % 360)
+          }}
+        ><span /></div>
+      </div>
       <div
         ref={wheelRef}
         className={`wheel ${spinning ? 'is-spinning' : ''}`}

@@ -70,7 +70,12 @@ h1 span { color: #717686; }
 .wheel-hub-glow { fill: rgba(70,238,181,.14); stroke: rgba(83,227,255,.28); stroke-width: 2; }
 .wheel-hub-ring { fill: #080a10; stroke: rgba(111,239,210,.55); stroke-width: 2; }
 .wheel-hub { fill: #10131b; stroke: rgba(255,255,255,.11); stroke-width: 1; }
-.pointer { position: absolute; z-index: 4; top: -3px; left: 50%; transform: translateX(-50%); width: 46px; height: 53px; border: 1px solid rgba(119,255,213,.42); border-radius: 14px 14px 17px 17px; background: linear-gradient(145deg, #242936, #10131b); box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 25px rgba(70,238,181,.24), 0 10px 28px rgba(0,0,0,.48); display: grid; place-items: end center; padding-bottom: 6px; }
+.pointer-orbit { position: absolute; z-index: 4; inset: 0; border-radius: 50%; pointer-events: none; transform: rotate(var(--pointer-angle)); transition: transform .18s cubic-bezier(.2,.75,.2,1); }
+.pointer-orbit.is-dragging { transition: none; }
+.pointer { position: absolute; top: -3px; left: 50%; transform: translateX(-50%); width: 46px; height: 53px; border: 1px solid rgba(119,255,213,.42); border-radius: 14px 14px 17px 17px; background: linear-gradient(145deg, #242936, #10131b); box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 25px rgba(70,238,181,.24), 0 10px 28px rgba(0,0,0,.48); display: grid; place-items: end center; padding-bottom: 6px; pointer-events: auto; touch-action: none; cursor: grab; user-select: none; }
+.pointer:hover { border-color: rgba(119,255,213,.78); box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 32px rgba(70,238,181,.44), 0 10px 28px rgba(0,0,0,.48); }
+.pointer:active, .pointer-orbit.is-dragging .pointer { cursor: grabbing; }
+.wheel-shell.is-active .pointer { cursor: wait; }
 .pointer::before { content: ''; position: absolute; bottom: -14px; left: 8px; border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 20px solid #151923; filter: drop-shadow(0 4px 3px rgba(0,0,0,.3)); }
 .pointer span { width: 10px; height: 10px; border: 2px solid #07100d; background: #55f0b7; box-shadow: 0 0 10px rgba(85,240,183,.85); border-radius: 50%; position: relative; z-index: 1; }
 .wheel-shell.is-active .pointer { animation: pointerTension .62s ease-in-out infinite alternate; }
@@ -122,9 +127,15 @@ kbd { border: 1px solid rgba(255,255,255,.2); background: #171922; border-radius
 .panel-heading-actions .edit-button span { color: #8e94a4; font-size: 13px; }
 .panel-heading-actions .edit-button.is-done { border-color: rgba(57,217,138,.25); background: rgba(57,217,138,.09); color: #dff8ea; }
 .panel-heading-actions .edit-button.is-done span { color: var(--green); }
-.mode-switch { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border: 1px solid var(--line); background: #0d0f15; border-radius: 12px; margin-bottom: 22px; }
-.mode-switch button { padding: 12px; border: 0; border-radius: 8px; color: #777c8c; background: transparent; font-size: 12px; font-weight: 700; cursor: pointer; }
-.mode-switch button.active { color: #f5f6f8; background: #222530; box-shadow: 0 3px 9px rgba(0,0,0,.25); }
+.mode-switch { position: relative; isolation: isolate; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border: 1px solid var(--line); background: #0d0f15; border-radius: 12px; margin-bottom: 22px; overflow: hidden; transition: border-color .25s ease, box-shadow .25s ease; }
+.mode-switch::before { content: ''; position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border: 1px solid rgba(104,239,207,.2); border-radius: 8px; background: linear-gradient(135deg, rgba(54,222,166,.16), rgba(76,123,255,.16)); box-shadow: 0 4px 14px rgba(0,0,0,.3), 0 0 18px rgba(70,219,190,.1), inset 0 1px rgba(255,255,255,.08); transition: transform .42s cubic-bezier(.22,.8,.25,1), box-shadow .25s ease; }
+.mode-switch.is-single::before { transform: translateX(100%); }
+.mode-switch:hover { border-color: rgba(108,225,207,.22); box-shadow: 0 0 22px rgba(69,211,183,.07); }
+.mode-switch button { position: relative; z-index: 1; padding: 12px; border: 0; border-radius: 8px; color: #777c8c; background: transparent; font-size: 12px; font-weight: 700; cursor: pointer; transition: color .22s ease, transform .18s cubic-bezier(.2,.8,.2,1), text-shadow .22s ease; }
+.mode-switch button:hover:not(:disabled) { color: #dfe6ed; transform: translateY(-1px); text-shadow: 0 0 13px rgba(96,232,205,.42); }
+.mode-switch button:active:not(:disabled) { transform: translateY(0) scale(.96); }
+.mode-switch button.active { color: #f5fffb; text-shadow: 0 0 13px rgba(96,232,205,.24); }
+.mode-switch button:disabled { cursor: wait; }
 .input-label { display: block; color: #b5b9c5; font-size: 12px; font-weight: 700; margin: 0 0 10px 2px; }
 textarea { display: block; resize: vertical; width: 100%; min-height: 196px; max-height: 390px; border: 1px solid var(--line); border-radius: 13px; background: #0b0d12; color: #e9eaf0; padding: 14px 15px; font-size: 13px; line-height: 1.7; caret-color: var(--accent); }
 textarea:hover { border-color: rgba(255,255,255,.15); }
@@ -261,5 +272,6 @@ footer button { margin-left: auto; border: 0; background: transparent; color: #7
 
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
+  .pointer-orbit { transition: none; }
   .wheel-shell::before, .wheel-shell.is-active .pointer, .spin-button { animation: none; }
 }
