@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useLayoutEffect, useRef } from 'react'
 
 type WheelProps = {
   items: string[]
@@ -10,14 +10,14 @@ type WheelProps = {
 }
 
 const COLORS = [
-  { from: '#ff5f78', to: '#e83d62' },
-  { from: '#ffcf58', to: '#f29b38' },
-  { from: '#39dfa0', to: '#16a878' },
-  { from: '#55c7ff', to: '#287de8' },
-  { from: '#a47bff', to: '#7046e8' },
-  { from: '#ff67ba', to: '#d9368a' },
-  { from: '#39dfd2', to: '#149f9b' },
-  { from: '#ff9c4a', to: '#ed5f2e' },
+  { from: '#28766e', to: '#19433f' },
+  { from: '#67558c', to: '#3a3054' },
+  { from: '#3f7565', to: '#25483d' },
+  { from: '#386b92', to: '#23425d' },
+  { from: '#664f88', to: '#3d3057' },
+  { from: '#87495e', to: '#512b3a' },
+  { from: '#327878', to: '#1e4849' },
+  { from: '#50688f', to: '#2d3c59' },
 ]
 const CENTER = 250
 const RADIUS = 230
@@ -41,17 +41,49 @@ const shortLabel = (label: string, total: number) => {
 
 export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }: WheelProps) {
   const filterId = useId().replaceAll(':', '')
+  const wheelRef = useRef<HTMLDivElement>(null)
+  const previousRotation = useRef(rotation)
+  const finishCallback = useRef(onFinished)
   const slice = items.length ? 360 / items.length : 360
 
+  finishCallback.current = onFinished
+
+  useLayoutEffect(() => {
+    const element = wheelRef.current
+    if (!element) return
+    const from = previousRotation.current
+
+    if (!spinning || Math.abs(rotation - from) < 0.001) {
+      element.style.transform = `rotate(${rotation}deg)`
+      if (!spinning) previousRotation.current = rotation
+      return
+    }
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const animation = element.animate([
+      { transform: `rotate(${from}deg)` },
+      { transform: `rotate(${rotation}deg)` },
+    ], {
+      duration: reducedMotion ? 1_200 : 7_400,
+      easing: 'cubic-bezier(.18, 0, .22, 1)',
+      fill: 'forwards',
+    })
+
+    animation.onfinish = () => {
+      previousRotation.current = rotation
+      element.style.transform = `rotate(${rotation}deg)`
+      finishCallback.current()
+    }
+    return () => animation.cancel()
+  }, [rotation, spinning, items.length])
+
   return (
-    <div className="wheel-shell">
+    <div className={`wheel-shell ${spinning ? 'is-active' : ''}`}>
       <div className="pointer" aria-hidden="true"><span /></div>
       <div
+        ref={wheelRef}
         className={`wheel ${spinning ? 'is-spinning' : ''}`}
         style={{ transform: `rotate(${rotation}deg)` }}
-        onTransitionEnd={(event) => {
-          if (event.propertyName === 'transform') onFinished()
-        }}
       >
         <svg viewBox="0 0 500 500" role="img" aria-label={`Колесо из ${items.length} вариантов`}>
           <defs>
@@ -63,6 +95,17 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
               <stop offset="0.48" stopColor="#5e8cff" />
               <stop offset="1" stopColor="#d96dff" />
             </linearGradient>
+            <radialGradient id={`${filterId}-depth`} cx="48%" cy="43%" r="59%">
+              <stop offset="0" stopColor="#ffffff" stopOpacity="0.075" />
+              <stop offset="0.58" stopColor="#ffffff" stopOpacity="0.015" />
+              <stop offset="0.82" stopColor="#05070b" stopOpacity="0.12" />
+              <stop offset="1" stopColor="#030408" stopOpacity="0.38" />
+            </radialGradient>
+            <radialGradient id={`${filterId}-inner-light`} cx="50%" cy="50%" r="50%">
+              <stop offset="0" stopColor="#62f5c4" stopOpacity="0.2" />
+              <stop offset="0.3" stopColor="#55d9da" stopOpacity="0.07" />
+              <stop offset="0.72" stopColor="#4c77ff" stopOpacity="0" />
+            </radialGradient>
             {COLORS.map((color, index) => (
               <linearGradient key={`gradient-${index}`} id={`${filterId}-sector-${index}`} x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0" stopColor={color.from} />
@@ -81,7 +124,8 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
               const end = start + slice
               return <path key={`${item}-${index}`} d={sectorPath(start, end)} fill={`url(#${filterId}-sector-${index % COLORS.length})`} className="wheel-sector" />
             })}
-            <circle cx={CENTER} cy={CENTER} r={RADIUS - 2} className="wheel-glass" />
+            <circle cx={CENTER} cy={CENTER} r={RADIUS - 2} fill={`url(#${filterId}-inner-light)`} className="wheel-inner-light" />
+            <circle cx={CENTER} cy={CENTER} r={RADIUS - 2} fill={`url(#${filterId}-depth)`} className="wheel-glass" />
             {items.map((item, index) => {
               const angle = -90 + (index + 0.5) * slice
               const point = polar(items.length > 18 ? 155 : 150, angle)

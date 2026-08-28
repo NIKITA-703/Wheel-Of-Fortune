@@ -150,7 +150,7 @@ export function App() {
   // Transition events can be suppressed by a browser/tab switch; never leave UI locked.
   useEffect(() => {
     if (!spinning) return
-    const timer = window.setTimeout(finishSpin, 7_000)
+    const timer = window.setTimeout(finishSpin, 8_500)
     return () => window.clearTimeout(timer)
   }, [spinning, pendingWinner])
 
@@ -195,6 +195,12 @@ export function App() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
+      if (event.code === 'Escape' && showAudit) {
+        event.preventDefault()
+        setShowAudit(false)
+        return
+      }
+      if (showAudit) return
       if (event.code === 'Space' && target?.tagName !== 'TEXTAREA' && target?.tagName !== 'INPUT') {
         event.preventDefault()
         void spin()
@@ -221,7 +227,9 @@ export function App() {
           <span>Честное колесо</span>
         </a>
         <div className="top-actions">
-          <button className="icon-button" type="button" onClick={() => setShowAudit(true)} title="Проверка честности">⌁</button>
+          <button className="icon-button audit-trigger" type="button" onClick={() => setShowAudit(true)} title="Проверка честности" aria-label="Открыть аудит честности">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.8 2.5 5.7 13h5.7l-1.2 8.5L18.4 10h-5.6l1-7.5Z" /></svg>
+          </button>
           <button className="icon-button" type="button" onClick={fullscreen} title="Во весь экран">⛶</button>
         </div>
       </header>
@@ -336,7 +344,7 @@ export function App() {
 
       {showAudit && <div className="modal-backdrop" role="presentation" onMouseDown={() => setShowAudit(false)}>
         <section className="audit-modal" role="dialog" aria-modal="true" aria-label="Аудит случайности" onMouseDown={(event) => event.stopPropagation()}>
-          <button className="modal-close" type="button" onClick={() => setShowAudit(false)}>×</button>
+          <button className="modal-close" type="button" onClick={() => setShowAudit(false)} title="Закрыть (Esc)">×<small>Esc</small></button>
           <span className="panel-kicker">Аудит</span><h2>След случайности</h2>
           {!report ? <p className="empty-audit">После первого вращения здесь появится отчёт об источниках.</p> : <>
             <div className="audit-stats"><div><strong>{report.liveSources}</strong><span>собрано</span></div><div><strong>{report.unavailableSources}</strong><span>недоступно</span></div></div>
@@ -345,8 +353,8 @@ export function App() {
               {lastMath ? <>
                 <strong>В колесе {lastMath.range} {lastMath.range === 1 ? 'вариант' : lastMath.range < 5 ? 'варианта' : 'вариантов'} — шанс каждого ровно {(100 / lastMath.range).toFixed(2)}%</strong>
                 <div className="math-steps">
-                  <div><i>1</i><span><small>Браузер бросает цифровой жребий</small><b>Получено непредсказуемое число</b><p>Оно создаётся Web Crypto и смешивается с двумя снимками внешних данных. Погода или курс валют не могут сами назначить победителя.</p></span></div>
-                  <div><i>2</i><span><small>Число превращается в позицию</small><b>Делим его на {lastMath.range} и берём остаток: <em>{lastMath.offset}</em></b><p>Возможны только остатки от 0 до {lastMath.range - 1} — по одному для каждого варианта.</p></span></div>
+                  <div><i>1</i><span><small>Браузер бросает цифровой жребий</small><b>Получено число <em>{lastMath.candidate.toLocaleString('ru')}</em></b><p>Оно создаётся Web Crypto и смешивается с двумя снимками внешних данных. Погода или курс валют не могут сами назначить победителя.</p></span></div>
+                  <div><i>2</i><span><small>Число превращается в позицию</small><b><em>{lastMath.candidate.toLocaleString('ru')}</em> ÷ {lastMath.range} = {Math.floor(lastMath.candidate / lastMath.range).toLocaleString('ru')}, остаток <em>{lastMath.offset}</em></b><p>Возможны только остатки от 0 до {lastMath.range - 1} — по одному для каждого варианта.</p></span></div>
                   <div><i>3</i><span><small>Остаток указывает строку</small><b>Остаток {lastMath.offset} означает сектор №{lastMath.offset + 1}</b><p>В списке под этим номером находится «{winner ?? pendingWinner ?? 'ожидаем остановку колеса'}».</p></span></div>
                 </div>
                 <div className="math-result"><span>Итоговый выбор</span><strong>№{lastMath.offset + 1} · {winner ?? pendingWinner ?? 'ожидаем остановку колеса'}</strong></div>
