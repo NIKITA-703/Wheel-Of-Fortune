@@ -44,23 +44,36 @@ h1 { margin: 17px 0 12px; font-size: clamp(38px, 4.6vw, 68px); line-height: .98;
 h1 span { color: #717686; }
 .lead { max-width: 590px; color: var(--muted); font-size: 14px; line-height: 1.75; margin: 0 0 18px; }
 
-.wheel-shell { --wheel-size: min(510px, calc(100vh - 205px), 100%); position: relative; width: var(--wheel-size); height: var(--wheel-size); margin: 0; filter: drop-shadow(0 28px 50px rgba(0,0,0,.35)); }
-.wheel { width: 100%; height: 100%; border-radius: 50%; will-change: transform; }
+.wheel-shell { --wheel-size: min(510px, calc(100vh - 205px), 100%); position: relative; width: var(--wheel-size); height: var(--wheel-size); margin: 0; filter: drop-shadow(0 28px 50px rgba(0,0,0,.42)); }
+.wheel-shell::before { content: ''; position: absolute; z-index: 0; inset: -7%; border-radius: 50%; background: radial-gradient(circle, rgba(68,240,181,.12) 0, rgba(71,126,255,.07) 42%, rgba(206,91,255,.045) 57%, transparent 70%); filter: blur(18px); animation: wheelAura 4s ease-in-out infinite; }
+.wheel { position: relative; z-index: 1; width: 100%; height: 100%; border-radius: 50%; will-change: transform; }
 .wheel.is-spinning { transition: transform 5.6s cubic-bezier(.12,.62,.08,1); }
 .wheel svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.wheel-outer-shadow { fill: #080910; stroke: rgba(255,255,255,.1); stroke-width: 2; }
+.wheel-rim { opacity: .9; }
+.wheel-rim-inner { fill: #0d1018; stroke: rgba(255,255,255,.16); stroke-width: 1.5; }
+.wheel-sector { stroke: rgba(11,13,19,.52); stroke-width: 2; }
+.wheel-glass { fill: rgba(255,255,255,.025); stroke: rgba(255,255,255,.19); stroke-width: 1.5; pointer-events: none; }
 .wheel-label { fill: rgba(255,255,255,.95); font-weight: 800; letter-spacing: -.03em; paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 2px; stroke-linejoin: round; }
-.wheel-hub-ring { fill: #090a0f; stroke: rgba(255,255,255,.16); stroke-width: 2; }
-.wheel-hub { fill: #f3f4f7; }
-.pointer { position: absolute; z-index: 4; top: -3px; left: 50%; transform: translateX(-50%); width: 44px; height: 51px; border-radius: 13px 13px 16px 16px; background: #f7f7fa; box-shadow: 0 8px 24px rgba(0,0,0,.4); display: grid; place-items: end center; padding-bottom: 5px; }
-.pointer::before { content: ''; position: absolute; bottom: -13px; left: 8px; border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 20px solid #f7f7fa; }
-.pointer span { width: 10px; height: 10px; border: 3px solid #151720; border-radius: 50%; position: relative; z-index: 1; }
-.spin-button { position: absolute; z-index: 5; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: 98px; height: 98px; border: 0; border-radius: 50%; background: transparent; color: #0b0c10; font-size: 13px; font-weight: 800; cursor: pointer; }
-.spin-button:disabled { cursor: wait; }
+.wheel-hub-glow { fill: rgba(70,238,181,.14); stroke: rgba(83,227,255,.28); stroke-width: 2; }
+.wheel-hub-ring { fill: #080a10; stroke: rgba(111,239,210,.55); stroke-width: 2; }
+.wheel-hub { fill: #10131b; stroke: rgba(255,255,255,.11); stroke-width: 1; }
+.pointer { position: absolute; z-index: 4; top: -3px; left: 50%; transform: translateX(-50%); width: 46px; height: 53px; border: 1px solid rgba(119,255,213,.42); border-radius: 14px 14px 17px 17px; background: linear-gradient(145deg, #242936, #10131b); box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 25px rgba(70,238,181,.24), 0 10px 28px rgba(0,0,0,.48); display: grid; place-items: end center; padding-bottom: 6px; }
+.pointer::before { content: ''; position: absolute; bottom: -14px; left: 8px; border-left: 14px solid transparent; border-right: 14px solid transparent; border-top: 20px solid #151923; filter: drop-shadow(0 4px 3px rgba(0,0,0,.3)); }
+.pointer span { width: 10px; height: 10px; border: 2px solid #07100d; background: #55f0b7; box-shadow: 0 0 10px rgba(85,240,183,.85); border-radius: 50%; position: relative; z-index: 1; }
+.spin-button { position: absolute; z-index: 5; isolation: isolate; overflow: hidden; inset: 50% auto auto 50%; transform: translate(-50%, -50%); width: 102px; height: 102px; border: 2px solid rgba(210,255,240,.72); border-radius: 50%; background: linear-gradient(135deg, #75ffd0 0%, #42dfb1 38%, #4ba5ff 100%); color: #07110e; box-shadow: 0 0 0 6px rgba(7,9,14,.88), 0 0 0 8px rgba(84,239,190,.16), 0 0 26px rgba(73,238,184,.5), 0 0 54px rgba(63,143,255,.23), inset 0 2px 2px rgba(255,255,255,.62), inset 0 -5px 12px rgba(20,80,100,.2); font-size: 13px; font-weight: 900; letter-spacing: -.02em; cursor: pointer; transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s ease, filter .2s ease; animation: buttonPulse 2.4s ease-in-out infinite; }
+.spin-button::after { content: ''; position: absolute; inset: -35%; z-index: 0; pointer-events: none; background: linear-gradient(110deg, transparent 32%, rgba(255,255,255,.58) 48%, transparent 64%); transform: translateX(-70%) rotate(15deg); transition: transform .55s ease; mix-blend-mode: screen; }
+.spin-button:hover:not(:disabled) { transform: translate(-50%, -50%) scale(1.09); filter: saturate(1.15) brightness(1.06); box-shadow: 0 0 0 6px rgba(7,9,14,.9), 0 0 0 9px rgba(84,239,190,.26), 0 0 34px rgba(73,255,191,.75), 0 0 72px rgba(65,146,255,.4), inset 0 2px 3px rgba(255,255,255,.72), inset 0 -5px 12px rgba(20,80,100,.15); animation-play-state: paused; }
+.spin-button:hover:not(:disabled)::after { transform: translateX(72%) rotate(15deg); }
+.spin-button:active:not(:disabled) { transform: translate(-50%, -50%) scale(.96); filter: brightness(.94); box-shadow: 0 0 0 5px rgba(7,9,14,.92), 0 0 24px rgba(73,255,191,.72), inset 0 5px 14px rgba(4,45,38,.25); transition-duration: .07s; }
+.spin-button:disabled { cursor: wait; animation: none; filter: saturate(.7); }
 .button-loader, .status-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid rgba(8,10,15,.2); border-top-color: #090a0f; border-radius: 50%; animation: loading .7s linear infinite; }
 .wheel-status { min-height: 28px; margin: 13px 0 0; width: min(510px, 100%); display: flex; justify-content: center; align-items: center; gap: 8px; color: #737888; font-size: 12px; }
 .wheel-status .status-spinner { width: 14px; height: 14px; border-color: rgba(255,255,255,.15); border-top-color: #fff; }
 kbd { border: 1px solid rgba(255,255,255,.2); background: #171922; border-radius: 5px; padding: 2px 6px; color: #b7bbc8; font-size: 10px; box-shadow: 0 2px 0 #050507; }
 @keyframes loading { to { transform: rotate(360deg); } }
+@keyframes buttonPulse { 0%, 100% { box-shadow: 0 0 0 6px rgba(7,9,14,.88), 0 0 0 8px rgba(84,239,190,.12), 0 0 22px rgba(73,238,184,.42), 0 0 45px rgba(63,143,255,.18), inset 0 2px 2px rgba(255,255,255,.62), inset 0 -5px 12px rgba(20,80,100,.2); } 50% { box-shadow: 0 0 0 6px rgba(7,9,14,.88), 0 0 0 10px rgba(84,239,190,.2), 0 0 34px rgba(73,238,184,.63), 0 0 64px rgba(63,143,255,.3), inset 0 2px 2px rgba(255,255,255,.68), inset 0 -5px 12px rgba(20,80,100,.16); } }
+@keyframes wheelAura { 0%, 100% { opacity: .72; transform: scale(.98); } 50% { opacity: 1; transform: scale(1.025); } }
 
 .result-space { width: 100%; margin-top: clamp(30px, 8vh, 95px); }
 .winner-card, .error-card { width: 100%; margin-top: 10px; border-radius: 16px; animation: reveal .35s ease both; }
@@ -165,12 +178,21 @@ footer button { margin-left: auto; border: 0; background: transparent; color: #7
 .math-steps i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(125,140,255,.14); color: #aeb8ff; font-size: 11px; font-style: normal; font-weight: 800; }
 .math-steps span { min-width: 0; }
 .math-steps small { display: block; color: #777e90; font-size: 8px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
-.math-steps b { display: block; margin-top: 4px; color: #d6d9e2; font-size: 11px; line-height: 1.45; }
+.math-steps b { display: block; margin-top: 4px; color: #d6d9e2; font-size: 12px; line-height: 1.5; }
 .math-steps em { color: #fff; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-style: normal; }
-.math-steps p { margin: 3px 0 0; color: #717787; font-size: 9px; line-height: 1.45; }
+.math-steps p { margin: 4px 0 0; color: #7d8393; font-size: 10px; line-height: 1.55; }
 .math-result { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; border: 1px solid rgba(57,217,138,.2); border-radius: 10px; background: rgba(57,217,138,.07); padding: 11px 12px; }
 .math-result span { color: #7acba2; font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .math-result strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e6f8ed; font-size: 12px; }
+.fairness-note { margin: 11px 0; border-left: 2px solid rgba(84,239,190,.45); padding: 2px 0 2px 11px; color: #858c9c; font-size: 10px; line-height: 1.6; }
+.fairness-note strong { color: #b8becb; }
+.technical-math { margin-top: 12px; border: 1px solid rgba(255,255,255,.07); border-radius: 10px; background: rgba(5,6,10,.28); }
+.technical-math summary { padding: 11px 12px; color: #8990a0; font-size: 10px; font-weight: 700; cursor: pointer; user-select: none; }
+.technical-math[open] summary { border-bottom: 1px solid rgba(255,255,255,.06); color: #b5bac7; }
+.technical-math > div { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,.045); }
+.technical-math > div:last-child { border-bottom: 0; }
+.technical-math > div span { color: #747b8c; font-size: 9px; }
+.technical-math > div code { margin: 0; padding: 4px 7px; color: #bac1d1; font-size: 9px; white-space: nowrap; }
 .source-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .source-list > div { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 49px; border: 1px solid rgba(255,255,255,.065); border-radius: 10px; padding: 10px 11px; }
 .source-list i { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #555a67; }
@@ -220,4 +242,5 @@ footer button { margin-left: auto; border: 0; background: transparent; color: #7
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
   .wheel.is-spinning { transition-duration: 1.2s; }
+  .wheel-shell::before, .spin-button { animation: none; }
 }

@@ -341,16 +341,23 @@ export function App() {
           {!report ? <p className="empty-audit">После первого вращения здесь появится отчёт об источниках.</p> : <>
             <div className="audit-stats"><div><strong>{report.liveSources}</strong><span>собрано</span></div><div><strong>{report.unavailableSources}</strong><span>недоступно</span></div></div>
             <div className="math-card">
-              <span>Математика выбора</span>
+              <span>Почему выпал именно этот вариант</span>
               {lastMath ? <>
-                <strong>Шанс каждого сектора: 1 / {lastMath.range} = {(100 / lastMath.range).toFixed(4)}%</strong>
+                <strong>В колесе {lastMath.range} {lastMath.range === 1 ? 'вариант' : lastMath.range < 5 ? 'варианта' : 'вариантов'} — шанс каждого ровно {(100 / lastMath.range).toFixed(2)}%</strong>
                 <div className="math-steps">
-                  <div><i>1</i><span><small>Получаем число</small><b>Web Crypto и источники дали <em>{lastMath.candidate.toLocaleString('ru')}</em></b><p>Это число из диапазона от 0 до 4 294 967 295.</p></span></div>
-                  <div><i>2</i><span><small>Проверяем честный диапазон</small><b><em>{lastMath.candidate.toLocaleString('ru')}</em> меньше {lastMath.acceptanceLimit.toLocaleString('ru')} — принимаем ✓</b><p>Повторных попыток: {lastMath.rejectedDraws}. Из края диапазона исключено: {lastMath.rejectedValues}.</p></span></div>
-                  <div><i>3</i><span><small>Находим позицию в списке</small><b>{lastMath.candidate.toLocaleString('ru')} ÷ {lastMath.range}: остаток <em>{lastMath.offset}</em></b><p>Счёт начинается с нуля, поэтому это сектор №{lastMath.offset + 1}.</p></span></div>
+                  <div><i>1</i><span><small>Браузер бросает цифровой жребий</small><b>Получено непредсказуемое число</b><p>Оно создаётся Web Crypto и смешивается с двумя снимками внешних данных. Погода или курс валют не могут сами назначить победителя.</p></span></div>
+                  <div><i>2</i><span><small>Число превращается в позицию</small><b>Делим его на {lastMath.range} и берём остаток: <em>{lastMath.offset}</em></b><p>Возможны только остатки от 0 до {lastMath.range - 1} — по одному для каждого варианта.</p></span></div>
+                  <div><i>3</i><span><small>Остаток указывает строку</small><b>Остаток {lastMath.offset} означает сектор №{lastMath.offset + 1}</b><p>В списке под этим номером находится «{winner ?? pendingWinner ?? 'ожидаем остановку колеса'}».</p></span></div>
                 </div>
                 <div className="math-result"><span>Итоговый выбор</span><strong>№{lastMath.offset + 1} · {winner ?? pendingWinner ?? 'ожидаем остановку колеса'}</strong></div>
-                <small>Отбрасывание края диапазона убирает modulo bias: каждый из {lastMath.range} вариантов имеет строго одинаковый шанс.</small>
+                <p className="fairness-note"><strong>Почему шанс действительно одинаковый?</strong> Если цифровое число попадает в маленький «лишний хвост», движок выбрасывает его и берёт новое. Так ни одна строка не получает даже микроскопического преимущества. В этом вращении повторов: {lastMath.rejectedDraws}.</p>
+                <details className="technical-math">
+                  <summary>Показать технические числа</summary>
+                  <div><span>Полученное UInt32</span><code>{lastMath.candidate.toLocaleString('ru')}</code></div>
+                  <div><span>Принимаем значения меньше</span><code>{lastMath.acceptanceLimit.toLocaleString('ru')}</code></div>
+                  <div><span>Фактическое деление</span><code>{lastMath.candidate.toLocaleString('ru')} mod {lastMath.range} = {lastMath.offset}</code></div>
+                  <div><span>Исключено значений из хвоста</span><code>{lastMath.rejectedValues}</code></div>
+                </details>
               </> : <strong>Появится после вращения</strong>}
             </div>
             <label>SHA-256 отпечаток</label><code>{report.digestHex}</code>

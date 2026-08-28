@@ -9,7 +9,16 @@ type WheelProps = {
   onFinished: () => void
 }
 
-const COLORS = ['#ff5f57', '#ffbd2e', '#26c281', '#35a7ff', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
+const COLORS = [
+  { from: '#ff5f78', to: '#e83d62' },
+  { from: '#ffcf58', to: '#f29b38' },
+  { from: '#39dfa0', to: '#16a878' },
+  { from: '#55c7ff', to: '#287de8' },
+  { from: '#a47bff', to: '#7046e8' },
+  { from: '#ff67ba', to: '#d9368a' },
+  { from: '#39dfd2', to: '#149f9b' },
+  { from: '#ff9c4a', to: '#ed5f2e' },
+]
 const CENTER = 250
 const RADIUS = 230
 
@@ -49,15 +58,30 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
             <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
               <feDropShadow dx="0" dy="7" stdDeviation="8" floodOpacity="0.35" />
             </filter>
+            <linearGradient id={`${filterId}-rim`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#58f3ba" />
+              <stop offset="0.48" stopColor="#5e8cff" />
+              <stop offset="1" stopColor="#d96dff" />
+            </linearGradient>
+            {COLORS.map((color, index) => (
+              <linearGradient key={`gradient-${index}`} id={`${filterId}-sector-${index}`} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor={color.from} />
+                <stop offset="1" stopColor={color.to} />
+              </linearGradient>
+            ))}
           </defs>
           <g filter={`url(#${filterId})`}>
+            <circle cx={CENTER} cy={CENTER} r="241" className="wheel-outer-shadow" />
+            <circle cx={CENTER} cy={CENTER} r="237" fill={`url(#${filterId}-rim)`} className="wheel-rim" />
+            <circle cx={CENTER} cy={CENTER} r="232" className="wheel-rim-inner" />
             {items.length === 1 ? (
-              <circle cx={CENTER} cy={CENTER} r={RADIUS} fill={COLORS[0]} />
+              <circle cx={CENTER} cy={CENTER} r={RADIUS} fill={`url(#${filterId}-sector-0)`} />
             ) : items.map((item, index) => {
               const start = -90 + index * slice
               const end = start + slice
-              return <path key={`${item}-${index}`} d={sectorPath(start, end)} fill={COLORS[index % COLORS.length]} stroke="rgba(255,255,255,.32)" strokeWidth="2" />
+              return <path key={`${item}-${index}`} d={sectorPath(start, end)} fill={`url(#${filterId}-sector-${index % COLORS.length})`} className="wheel-sector" />
             })}
+            <circle cx={CENTER} cy={CENTER} r={RADIUS - 2} className="wheel-glass" />
             {items.map((item, index) => {
               const angle = -90 + (index + 0.5) * slice
               const point = polar(items.length > 18 ? 155 : 150, angle)
@@ -78,8 +102,9 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
               )
             })}
           </g>
+          <circle cx={CENTER} cy={CENTER} r="53" className="wheel-hub-glow" />
           <circle cx={CENTER} cy={CENTER} r="49" className="wheel-hub-ring" />
-          <circle cx={CENTER} cy={CENTER} r="38" className="wheel-hub" />
+          <circle cx={CENTER} cy={CENTER} r="39" className="wheel-hub" />
         </svg>
       </div>
       <button
