@@ -46,7 +46,7 @@ h1 { margin: 17px 0 12px; font-size: clamp(38px, 4.6vw, 68px); line-height: .98;
 h1 span { color: #717686; }
 .lead { max-width: 590px; color: var(--muted); font-size: 14px; line-height: 1.75; margin: 0 0 18px; }
 
-.wheel-shell { --wheel-size: min(510px, calc(100vh - 205px), 100%); position: relative; width: var(--wheel-size); height: var(--wheel-size); margin: 0; filter: drop-shadow(0 28px 50px rgba(0,0,0,.42)); }
+.wheel-shell { --wheel-size: min(510px, calc(100vh - 205px), 100%); position: relative; width: var(--wheel-size); height: var(--wheel-size); margin: 0; }
 .wheel-shell::before { content: ''; position: absolute; z-index: 0; inset: -7%; border-radius: 50%; background: radial-gradient(circle, rgba(68,240,181,.12) 0, rgba(71,126,255,.07) 42%, rgba(206,91,255,.045) 57%, transparent 70%); filter: blur(18px); animation: wheelAura 4s ease-in-out infinite; }
 .wheel { position: relative; z-index: 1; width: 100%; height: 100%; border-radius: 50%; will-change: transform; }
 .wheel svg { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -81,10 +81,14 @@ kbd { border: 1px solid rgba(255,255,255,.2); background: #171922; border-radius
 
 .result-space { width: 100%; margin-top: clamp(30px, 8vh, 95px); }
 .winner-card, .error-card { width: 100%; margin-top: 10px; border-radius: 16px; animation: reveal .35s ease both; }
-.winner-card { display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(57,217,138,.25); background: rgba(57,217,138,.08); padding: 14px 17px; }
+.winner-card { --result-color: 57,217,138; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(var(--result-color),.55); background: radial-gradient(circle at top right, rgba(var(--result-color),.15), transparent 38%), linear-gradient(180deg, rgba(12,20,20,.97), rgba(7,11,13,.97)); box-shadow: 0 0 0 1px rgba(var(--result-color),.1) inset, 0 0 25px rgba(var(--result-color),.13); padding: 18px 20px; transition: border-color .25s ease, box-shadow .25s ease; }
+.winner-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(var(--result-color),.12), transparent); transform: translateX(-105%); animation: resultScan 4.8s linear infinite; pointer-events: none; }
+.winner-card::after { content: ''; position: absolute; inset: 2px; border: 1px solid rgba(255,255,255,.035); border-radius: 13px; pointer-events: none; }
+.winner-card.is-eliminated { --result-color: 255,83,95; }
+.winner-card.is-survivor { --result-color: 57,217,138; }
 .winner-card div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.winner-card span { color: #77dba8; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.winner-card strong { overflow: hidden; text-overflow: ellipsis; font-size: 20px; }
+.winner-card span { color: rgb(var(--result-color)); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; text-shadow: 0 0 14px rgba(var(--result-color),.25); }
+.winner-card strong { overflow: hidden; text-overflow: ellipsis; font-size: 22px; }
 .winner-card button { border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.07); border-radius: 9px; padding: 8px 12px; cursor: pointer; }
 .winner-card button kbd { margin-right: 5px; color: #d8dbe3; }
 .error-card { color: #ff938e; border: 1px solid rgba(255,95,87,.25); background: rgba(255,95,87,.08); padding: 13px 16px; font-size: 13px; }
@@ -92,6 +96,7 @@ kbd { border: 1px solid rgba(255,255,255,.2); background: #171922; border-radius
 .result-placeholder span { font-size: 9px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
 .result-placeholder strong { color: #737887; font-size: clamp(13px, 1.2vw, 17px); }
 @keyframes reveal { from { opacity: 0; transform: translateY(7px); } }
+@keyframes resultScan { to { transform: translateX(105%); } }
 
 .control-panel { position: relative; min-width: 0; height: 100%; background: rgba(17,19,26,.9); border-left: 1px solid var(--line); padding: 38px clamp(28px, 2.6vw, 42px) 42px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #464a58 transparent; }
 .resize-handle { position: fixed; z-index: 20; top: 72px; bottom: 55px; right: calc(var(--panel-width, 460px) - 7px); width: 14px; cursor: col-resize; display: grid; place-items: center; }

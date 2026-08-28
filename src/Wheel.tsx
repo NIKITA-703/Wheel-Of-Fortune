@@ -3,6 +3,7 @@ import { useId, useLayoutEffect, useRef } from 'react'
 type WheelProps = {
   items: string[]
   rotation: number
+  duration: number
   spinning: boolean
   waiting: boolean
   onSpin: () => void
@@ -10,14 +11,14 @@ type WheelProps = {
 }
 
 const COLORS = [
-  { from: '#28766e', to: '#19433f' },
-  { from: '#67558c', to: '#3a3054' },
-  { from: '#3f7565', to: '#25483d' },
-  { from: '#386b92', to: '#23425d' },
-  { from: '#664f88', to: '#3d3057' },
-  { from: '#87495e', to: '#512b3a' },
-  { from: '#327878', to: '#1e4849' },
-  { from: '#50688f', to: '#2d3c59' },
+  { from: '#31d2b7', to: '#138779' },
+  { from: '#9b7cf2', to: '#6148bb' },
+  { from: '#50d69a', to: '#258a61' },
+  { from: '#4bb7f4', to: '#286fb8' },
+  { from: '#b16fe8', to: '#743fac' },
+  { from: '#f16f8c', to: '#ad3e59' },
+  { from: '#35c9d1', to: '#197f89' },
+  { from: '#728ced', to: '#4257ae' },
 ]
 const CENTER = 250
 const RADIUS = 230
@@ -39,7 +40,7 @@ const shortLabel = (label: string, total: number) => {
   return label.length > limit ? `${label.slice(0, limit - 1)}…` : label
 }
 
-export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }: WheelProps) {
+export function Wheel({ items, rotation, duration, spinning, waiting, onSpin, onFinished }: WheelProps) {
   const filterId = useId().replaceAll(':', '')
   const wheelRef = useRef<HTMLDivElement>(null)
   const previousRotation = useRef(rotation)
@@ -64,7 +65,7 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
       { transform: `rotate(${from}deg)` },
       { transform: `rotate(${rotation}deg)` },
     ], {
-      duration: reducedMotion ? 1_200 : 7_400,
+      duration: reducedMotion ? 1_200 : duration,
       easing: 'cubic-bezier(.18, 0, .22, 1)',
       fill: 'forwards',
     })
@@ -75,7 +76,7 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
       finishCallback.current()
     }
     return () => animation.cancel()
-  }, [rotation, spinning, items.length])
+  }, [rotation, duration, spinning, items.length])
 
   return (
     <div className={`wheel-shell ${spinning ? 'is-active' : ''}`}>
@@ -87,9 +88,6 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
       >
         <svg viewBox="0 0 500 500" role="img" aria-label={`Колесо из ${items.length} вариантов`}>
           <defs>
-            <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="7" stdDeviation="8" floodOpacity="0.35" />
-            </filter>
             <linearGradient id={`${filterId}-rim`} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" stopColor="#58f3ba" />
               <stop offset="0.48" stopColor="#5e8cff" />
@@ -98,8 +96,8 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
             <radialGradient id={`${filterId}-depth`} cx="48%" cy="43%" r="59%">
               <stop offset="0" stopColor="#ffffff" stopOpacity="0.075" />
               <stop offset="0.58" stopColor="#ffffff" stopOpacity="0.015" />
-              <stop offset="0.82" stopColor="#05070b" stopOpacity="0.12" />
-              <stop offset="1" stopColor="#030408" stopOpacity="0.38" />
+              <stop offset="0.82" stopColor="#05070b" stopOpacity="0.06" />
+              <stop offset="1" stopColor="#030408" stopOpacity="0.18" />
             </radialGradient>
             <radialGradient id={`${filterId}-inner-light`} cx="50%" cy="50%" r="50%">
               <stop offset="0" stopColor="#62f5c4" stopOpacity="0.2" />
@@ -113,7 +111,7 @@ export function Wheel({ items, rotation, spinning, waiting, onSpin, onFinished }
               </linearGradient>
             ))}
           </defs>
-          <g filter={`url(#${filterId})`}>
+          <g>
             <circle cx={CENTER} cy={CENTER} r="241" className="wheel-outer-shadow" />
             <circle cx={CENTER} cy={CENTER} r="237" fill={`url(#${filterId}-rim)`} className="wheel-rim" />
             <circle cx={CENTER} cy={CENTER} r="232" className="wheel-rim-inner" />

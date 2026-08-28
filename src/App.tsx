@@ -3,6 +3,7 @@ import {
   cameraEntropyProvider,
   geolocationEntropyProvider,
   microphoneEntropyProvider,
+  randomIntInclusive,
   secureRandomIndex,
   secureShuffleWithEntropy,
   startInteractionEntropyCapture,
@@ -52,6 +53,8 @@ export function App() {
   const [pendingWinner, setPendingWinner] = useState<string | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [rotation, setRotation] = useState(0)
+  const [wheelItems, setWheelItems] = useState<string[]>(() => parseOptions(loadText()))
+  const [spinDuration, setSpinDuration] = useState(7_500)
   const [spinning, setSpinning] = useState(false)
   const [waiting, setWaiting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -102,6 +105,7 @@ export function App() {
   const spin = async () => {
     if (spinGuard.current || spinning || waiting || !activeOptions.length) return
     if (activeOptions.length === 1) {
+      setWheelItems(activeOptions)
       setWinner(activeOptions[0])
       return
     }
@@ -120,14 +124,21 @@ export function App() {
         extraEntropyProviders,
       })
       const slice = 360 / activeOptions.length
-      const target = -(result.index + 0.5) * slice
-      const turns = Math.ceil((rotation - target) / 360) + 6
+      // The selected sector is fixed by the audited draw, while the exact stop
+      // point, duration and inertia distance are independent Web Crypto draws.
+      const landingOffset = (randomIntInclusive(-3_200, 3_200) / 10_000) * slice
+      const target = -(result.index + 0.5) * slice + landingOffset
+      const duration = randomIntInclusive(7_500, 13_500)
+      const inertiaTurns = Math.max(6, Math.round(duration / 1_150)) + randomIntInclusive(0, 2)
+      const turns = Math.ceil((rotation - target) / 360) + inertiaTurns
       setReport(result.report)
       setLastMath(result.math)
       setPendingWinner(result.item)
+      setWheelItems(activeOptions)
+      setSpinDuration(duration)
       setWaiting(false)
       setSpinning(true)
-      requestAnimationFrame(() => requestAnimationFrame(() => setRotation(target + turns * 360)))
+      setRotation(target + turns * 360)
     } catch (reason) {
       setWaiting(false)
       spinGuard.current = false
@@ -150,12 +161,13 @@ export function App() {
   // Transition events can be suppressed by a browser/tab switch; never leave UI locked.
   useEffect(() => {
     if (!spinning) return
-    const timer = window.setTimeout(finishSpin, 8_500)
+    const timer = window.setTimeout(finishSpin, spinDuration + 1_500)
     return () => window.clearTimeout(timer)
-  }, [spinning, pendingWinner])
+  }, [spinning, pendingWinner, spinDuration])
 
   const updateText = (value: string) => {
     setText(value)
+    setWheelItems(parseOptions(value))
     setEliminated(new Set())
     setWinner(null)
     setHistory([])
@@ -167,6 +179,7 @@ export function App() {
     setPendingWinner(null)
     setHistory([])
     setError(null)
+    setWheelItems(options)
   }
 
   const shuffle = async () => {
@@ -179,6 +192,7 @@ export function App() {
         timeoutMs: 2_500,
       })
       setText(result.items.join('\n'))
+      setWheelItems(result.items.filter((item) => !eliminated.has(item)))
       setWinner(null)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Не удалось перетасовать список')
@@ -242,7 +256,7 @@ export function App() {
             <p className="lead">Каждый результат рождается из Web Crypto и двух независимых снимков доступной энтропии.</p>
             <div className="result-space" aria-live="polite">
               {winner ? (
-                <div className="winner-card">
+                <div className={`winner-card ${eliminated.has(winner) ? 'is-eliminated' : 'is-survivor'}`}>
                   <div><span>{eliminated.has(winner) ? (mode === 'elimination' ? 'Выбывает' : 'Зачёркнут') : 'Победитель'}</span><strong>{winner}</strong></div>
                   {!eliminated.has(winner) && <button type="button" onClick={crossOutWinner}><kbd>S</kbd> Зачеркнуть</button>}
                 </div>
@@ -252,7 +266,7 @@ export function App() {
           </div>
 
           <div className="wheel-area">
-            <Wheel items={activeOptions} rotation={rotation} spinning={spinning} waiting={waiting} onSpin={() => void spin()} onFinished={finishSpin} />
+            <Wheel items={wheelItems} rotation={rotation} duration={spinDuration} spinning={spinning} waiting={waiting} onSpin={() => void spin()} onFinished={finishSpin} />
             <div className="wheel-status" aria-live="polite">
               {waiting && <><span className="status-spinner" /> Собираем энтропию…</>}
               {spinning && <>Колесо решает…</>}
