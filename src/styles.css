@@ -68,6 +68,7 @@ h1 span { color: #717686; }
 .wheel-sector-tile.is-entering { pointer-events: none; animation: sectorFlyIn .7s .35s cubic-bezier(.16,.78,.2,1) both; }
 .wheel-sector-tile.is-exiting .wheel-sector-line,
 .wheel-sector-tile.is-entering .wheel-sector-line { stroke: rgba(255,255,255,.68); stroke-width: 1.6; }
+.wheel-sector-tile.is-exiting .wheel-label { animation: exitingLabelFade .34s ease forwards; }
 .wheel-shell.is-active .wheel-sector-tile { pointer-events: none; }
 .wheel-shell.is-transitioning .wheel-sector-tile { pointer-events: none; }
 .wheel-inner-light, .wheel-glass { pointer-events: none; }
@@ -104,6 +105,10 @@ kbd { border: 1px solid rgba(255,255,255,.2); background: #171922; border-radius
   18% { transform: translate(var(--lift-x), var(--lift-y)) scale(1.025); opacity: 1; filter: drop-shadow(0 0 12px var(--sector-glow)) drop-shadow(0 0 24px var(--sector-glow)); }
   62% { transform: translate(var(--exit-x), var(--exit-y)) scale(.88); opacity: .82; filter: drop-shadow(0 0 15px var(--sector-glow)) drop-shadow(0 0 28px var(--sector-glow)); }
   100% { transform: translate(var(--exit-far-x), var(--exit-far-y)) scale(.72); opacity: 0; filter: drop-shadow(0 0 16px var(--sector-glow)); }
+}
+@keyframes exitingLabelFade {
+  0%, 30% { opacity: 1; }
+  100% { opacity: 0; }
 }
 @keyframes sectorFlyIn {
   0% { transform: translate(var(--fly-x), var(--fly-y)) scale(.82); opacity: 0; filter: drop-shadow(0 0 24px var(--sector-glow)); }

@@ -156,7 +156,7 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
         const rawClosure = boundsAt(index % remainingItems.length, remainingItems.length).start
         const closure = rawClosure + Math.round((center - rawClosure) / 360) * 360
         const closingProgress = Math.min(1, easedLayoutProgress / .28)
-        return mixBounds(current, { start: closure, end: closure + .001 }, closingProgress)
+        return mixBounds(current, { start: closure - 1.525, end: closure + 1.525 }, closingProgress)
       }
       const targetIndex = remainingItems.indexOf(item)
       const reflowProgress = Math.max(0, Math.min(1, (easedLayoutProgress - .08) / .8))
