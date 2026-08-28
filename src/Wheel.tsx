@@ -150,7 +150,12 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
   const animatedBoundsFor = (item: string, index: number): SectorBounds => {
     const current = boundsAt(index, items.length)
 
-    if (exitingItem && item !== exitingItem) {
+    if (exitingItem) {
+      if (item === exitingItem) {
+        const center = (current.start + current.end) / 2
+        const closingProgress = Math.min(1, easedLayoutProgress / .76)
+        return mixBounds(current, { start: center, end: center + .001 }, closingProgress)
+      }
       const targetIndex = remainingItems.indexOf(item)
       return mixBounds(current, boundsAt(targetIndex, remainingItems.length), easedLayoutProgress)
     }
