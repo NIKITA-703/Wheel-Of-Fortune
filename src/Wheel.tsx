@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef } from 'react'
+import { useId, useLayoutEffect, useRef, type CSSProperties } from 'react'
 
 type WheelProps = {
   items: string[]
@@ -11,14 +11,14 @@ type WheelProps = {
 }
 
 const COLORS = [
-  { from: '#31d2b7', to: '#138779' },
-  { from: '#9b7cf2', to: '#6148bb' },
-  { from: '#50d69a', to: '#258a61' },
-  { from: '#4bb7f4', to: '#286fb8' },
-  { from: '#b16fe8', to: '#743fac' },
-  { from: '#f16f8c', to: '#ad3e59' },
-  { from: '#35c9d1', to: '#197f89' },
-  { from: '#728ced', to: '#4257ae' },
+  { from: '#ff667d', to: '#d83b57', glow: 'rgba(255,82,116,.55)' },
+  { from: '#ffd064', to: '#dc9134', glow: 'rgba(255,194,74,.5)' },
+  { from: '#43dda2', to: '#199a69', glow: 'rgba(54,222,158,.5)' },
+  { from: '#55bcff', to: '#2878ca', glow: 'rgba(65,168,255,.52)' },
+  { from: '#aa7cff', to: '#7044c9', glow: 'rgba(153,103,255,.52)' },
+  { from: '#f36abb', to: '#be3983', glow: 'rgba(239,82,176,.5)' },
+  { from: '#35d2dc', to: '#138994', glow: 'rgba(39,207,220,.5)' },
+  { from: '#ff9454', to: '#d75a30', glow: 'rgba(255,126,68,.5)' },
 ]
 const CENTER = 250
 const RADIUS = 230
@@ -120,11 +120,38 @@ export function Wheel({ items, rotation, duration, spinning, waiting, onSpin, on
             ) : items.map((item, index) => {
               const start = -90 + index * slice
               const end = start + slice
-              return <path key={`${item}-${index}`} d={sectorPath(start, end)} fill={`url(#${filterId}-sector-${index % COLORS.length})`} className="wheel-sector" />
+              const angle = start + slice / 2
+              const point = polar(items.length > 18 ? 155 : 150, angle)
+              const readableAngle = angle > 90 && angle < 270 ? angle + 180 : angle
+              const radians = (angle * Math.PI) / 180
+              const color = COLORS[index % COLORS.length]
+              const tileStyle = {
+                '--lift-x': `${Math.cos(radians) * 7}px`,
+                '--lift-y': `${Math.sin(radians) * 7}px`,
+                '--sector-glow': color.glow,
+              } as CSSProperties
+              const path = sectorPath(start, end)
+              return (
+                <g key={`${item}-${index}`} className="wheel-sector-tile" style={tileStyle}>
+                  <path d={path} fill={`url(#${filterId}-sector-${index % COLORS.length})`} className="wheel-sector" />
+                  <path d={path} className="wheel-sector-line" />
+                  <text
+                    x={point.x}
+                    y={point.y}
+                    transform={`rotate(${readableAngle} ${point.x} ${point.y})`}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="wheel-label"
+                    style={{ fontSize: items.length > 20 ? 10 : items.length > 12 ? 12 : 14 }}
+                  >
+                    {shortLabel(item, items.length)}
+                  </text>
+                </g>
+              )
             })}
             <circle cx={CENTER} cy={CENTER} r={RADIUS - 2} fill={`url(#${filterId}-inner-light)`} className="wheel-inner-light" />
             <circle cx={CENTER} cy={CENTER} r={RADIUS - 2} fill={`url(#${filterId}-depth)`} className="wheel-glass" />
-            {items.map((item, index) => {
+            {items.length === 1 && items.map((item, index) => {
               const angle = -90 + (index + 0.5) * slice
               const point = polar(items.length > 18 ? 155 : 150, angle)
               const readableAngle = angle > 90 && angle < 270 ? angle + 180 : angle

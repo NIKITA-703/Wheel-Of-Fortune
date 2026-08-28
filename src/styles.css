@@ -47,16 +47,23 @@ h1 span { color: #717686; }
 .lead { max-width: 590px; color: var(--muted); font-size: 14px; line-height: 1.75; margin: 0 0 18px; }
 
 .wheel-shell { --wheel-size: min(510px, calc(100vh - 205px), 100%); position: relative; width: var(--wheel-size); height: var(--wheel-size); margin: 0; }
-.wheel-shell::before { content: ''; position: absolute; z-index: 0; inset: -7%; border-radius: 50%; background: radial-gradient(circle, rgba(68,240,181,.12) 0, rgba(71,126,255,.07) 42%, rgba(206,91,255,.045) 57%, transparent 70%); filter: blur(18px); animation: wheelAura 4s ease-in-out infinite; }
+.wheel-shell::before { content: ''; position: absolute; z-index: 0; inset: -11%; border-radius: 50%; background: conic-gradient(from 25deg, rgba(57,224,171,.34), rgba(73,133,255,.3), rgba(175,91,255,.3), rgba(247,76,151,.2), rgba(57,224,171,.34)); filter: blur(38px); opacity: .46; animation: wheelAura 5s ease-in-out infinite; }
+.wheel-shell::after { content: ''; position: absolute; z-index: 0; inset: -2.5%; border: 1px solid rgba(112,225,214,.18); border-radius: 50%; box-shadow: 0 0 28px rgba(49,211,184,.2), 0 0 58px rgba(95,101,255,.13); pointer-events: none; }
 .wheel { position: relative; z-index: 1; width: 100%; height: 100%; border-radius: 50%; will-change: transform; }
 .wheel svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .wheel-outer-shadow { fill: #080910; stroke: rgba(255,255,255,.1); stroke-width: 2; }
 .wheel-rim { opacity: .9; }
 .wheel-rim-inner { fill: #0d1018; stroke: rgba(255,255,255,.16); stroke-width: 1.5; }
-.wheel-sector { stroke: rgba(146,158,177,.52); stroke-width: 1.8; }
+.wheel-sector-tile { transform-box: view-box; transform-origin: 250px 250px; transition: transform .24s cubic-bezier(.2,.8,.2,1), filter .24s ease, opacity .24s ease; }
+.wheel-sector { stroke: #090c13; stroke-width: 5; stroke-linejoin: round; }
+.wheel-sector-line { fill: none; stroke: rgba(230,241,250,.3); stroke-width: 1.15; stroke-linejoin: round; pointer-events: none; }
+.wheel-shell:not(.is-active) .wheel-sector-tile:hover { transform: translate(var(--lift-x), var(--lift-y)) scale(1.022); filter: drop-shadow(0 0 10px var(--sector-glow)) drop-shadow(0 0 22px var(--sector-glow)); }
+.wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-sector-line { stroke: rgba(255,255,255,.58); stroke-width: 1.45; }
+.wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-label { fill: #fff; }
+.wheel-shell.is-active .wheel-sector-tile { pointer-events: none; }
 .wheel-inner-light, .wheel-glass { pointer-events: none; }
 .wheel-glass { stroke: rgba(207,222,235,.2); stroke-width: 1.5; }
-.wheel-label { fill: rgba(255,255,255,.95); font-weight: 800; letter-spacing: -.03em; paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 2px; stroke-linejoin: round; }
+.wheel-label { fill: rgba(255,255,255,.95); font-weight: 800; letter-spacing: -.03em; paint-order: stroke; stroke: rgba(0,0,0,.22); stroke-width: 2px; stroke-linejoin: round; pointer-events: none; transition: fill .2s ease; }
 .wheel-hub-glow { fill: rgba(70,238,181,.14); stroke: rgba(83,227,255,.28); stroke-width: 2; }
 .wheel-hub-ring { fill: #080a10; stroke: rgba(111,239,210,.55); stroke-width: 2; }
 .wheel-hub { fill: #10131b; stroke: rgba(255,255,255,.11); stroke-width: 1; }
