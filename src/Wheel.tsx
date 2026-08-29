@@ -66,7 +66,7 @@ const polar = (radius: number, angle: number) => {
   return { x: CENTER + radius * Math.cos(radians), y: CENTER + radius * Math.sin(radians) }
 }
 
-const sectorPath = (start: number, end: number, innerRadius = 0, outerRadius = RADIUS) => {
+const sectorPath = (start: number, end: number, innerRadius = 0, outerRadius = RADIUS, pointedInner = false) => {
   if (end - start >= 359.998 && innerRadius <= 0.001) {
     const first = polar(outerRadius, start)
     const opposite = polar(outerRadius, start + 180)
@@ -79,6 +79,15 @@ const sectorPath = (start: number, end: number, innerRadius = 0, outerRadius = R
 
   if (innerRadius <= 0.001) {
     return `M ${CENTER} ${CENTER} L ${outerStart.x} ${outerStart.y} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y} Z`
+  }
+
+  // During exit, keep the inner end as a single apex on the sector centre line.
+  // This makes the flying strip a narrow triangular spear instead of an
+  // annular rectangle with a flat/rounded inner edge.
+  if (pointedInner) {
+    const centerAngle = (start + end) / 2
+    const tip = polar(innerRadius, centerAngle)
+    return `M ${tip.x} ${tip.y} L ${outerStart.x} ${outerStart.y} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y} Z`
   }
 
   const innerEnd = polar(innerRadius, end)
@@ -362,6 +371,7 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
                 end,
                 item === exitingItem ? radialTravel : 0,
                 item === exitingItem ? RADIUS + radialTravel : RADIUS,
+                item === exitingItem && radialTravel > 0.001,
               )
               return (
                 <g
