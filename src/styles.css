@@ -58,13 +58,13 @@ h1 span { color: #717686; }
 .wheel-sector-tile { transform-box: view-box; transform-origin: 250px 250px; transition: transform .24s cubic-bezier(.2,.8,.2,1), filter .24s ease, opacity .24s ease; }
 .wheel-sector { stroke: #090c13; stroke-width: 5; stroke-linejoin: round; }
 .wheel-sector-line { fill: none; stroke: rgba(230,241,250,.3); stroke-width: 1.15; stroke-linejoin: round; pointer-events: none; }
-.wheel-shell:not(.is-active) .wheel-sector-tile:hover,
-.wheel-shell:not(.is-active) .wheel-sector-tile.is-selected { transform: translate(var(--lift-x), var(--lift-y)) scale(1.022); filter: drop-shadow(0 0 10px var(--sector-glow)) drop-shadow(0 0 22px var(--sector-glow)); }
+.wheel-shell:not(.is-active) .wheel-sector-tile:hover:not(.is-exiting):not(.is-entering),
+.wheel-shell:not(.is-active) .wheel-sector-tile.is-selected:not(.is-exiting):not(.is-entering) { transform: translate(var(--lift-x), var(--lift-y)) scale(1.022); filter: drop-shadow(0 0 10px var(--sector-glow)) drop-shadow(0 0 22px var(--sector-glow)); }
 .wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-sector-line,
 .wheel-shell:not(.is-active) .wheel-sector-tile.is-selected .wheel-sector-line { stroke: rgba(255,255,255,.58); stroke-width: 1.45; }
 .wheel-shell:not(.is-active) .wheel-sector-tile:hover .wheel-label,
 .wheel-shell:not(.is-active) .wheel-sector-tile.is-selected .wheel-label { fill: #fff; }
-.wheel-sector-tile.is-exiting { pointer-events: none; animation: sectorFlyOut 1.05s cubic-bezier(.2,.72,.22,1) forwards; }
+.wheel-sector-tile.is-exiting { pointer-events: none; animation: sectorFlyOut var(--exit-duration, 1350ms) cubic-bezier(.22,.7,.2,1) forwards; }
 .wheel-sector-tile.is-entering { pointer-events: none; animation: sectorFlyIn .7s .35s cubic-bezier(.16,.78,.2,1) both; }
 .wheel-sector-tile.is-exiting .wheel-sector-line,
 .wheel-sector-tile.is-entering .wheel-sector-line { stroke: rgba(255,255,255,.68); stroke-width: 1.6; }
@@ -101,14 +101,17 @@ kbd { border: 1px solid rgba(255,255,255,.2); background: #171922; border-radius
 @keyframes wheelAura { 0%, 100% { opacity: .72; transform: scale(.98); } 50% { opacity: 1; transform: scale(1.025); } }
 @keyframes pointerTension { from { box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 18px rgba(70,238,181,.18), 0 10px 28px rgba(0,0,0,.48); } to { box-shadow: 0 0 0 4px rgba(9,10,15,.75), 0 0 30px rgba(70,238,181,.38), 0 10px 28px rgba(0,0,0,.48); } }
 @keyframes sectorFlyOut {
-  0% { transform: translate(0, 0) scale(1); opacity: 1; filter: drop-shadow(0 0 0 transparent); }
-  18% { transform: translate(var(--lift-x), var(--lift-y)) scale(1.025); opacity: 1; filter: drop-shadow(0 0 12px var(--sector-glow)) drop-shadow(0 0 24px var(--sector-glow)); }
-  62% { transform: translate(var(--exit-x), var(--exit-y)) scale(.88); opacity: .82; filter: drop-shadow(0 0 15px var(--sector-glow)) drop-shadow(0 0 28px var(--sector-glow)); }
-  100% { transform: translate(var(--exit-far-x), var(--exit-far-y)) scale(.72); opacity: 0; filter: drop-shadow(0 0 16px var(--sector-glow)); }
+  /* The actual movement is done by SVG path geometry in Wheel.tsx.
+     CSS only controls glow/opacity, so rotation cannot skew the trajectory. */
+  0% { opacity: 1; filter: drop-shadow(0 0 0 transparent); }
+  20% { opacity: 1; filter: drop-shadow(0 0 12px var(--sector-glow)) drop-shadow(0 0 24px var(--sector-glow)); }
+  55% { opacity: 1; filter: drop-shadow(0 0 15px var(--sector-glow)) drop-shadow(0 0 28px var(--sector-glow)); }
+  82% { opacity: .72; filter: drop-shadow(0 0 17px var(--sector-glow)); }
+  100% { opacity: 0; filter: drop-shadow(0 0 12px var(--sector-glow)); }
 }
 @keyframes exitingLabelFade {
-  0%, 30% { opacity: 1; }
-  100% { opacity: 0; }
+  0%, 22% { opacity: 1; }
+  42%, 100% { opacity: 0; }
 }
 @keyframes sectorFlyIn {
   0% { transform: translate(var(--fly-x), var(--fly-y)) scale(.82); opacity: 0; filter: drop-shadow(0 0 24px var(--sector-glow)); }

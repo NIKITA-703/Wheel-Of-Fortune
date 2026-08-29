@@ -29,6 +29,8 @@ const COLORS = [
 const CENTER = 250
 const RADIUS = 230
 
+export const WHEEL_EXIT_DURATION = 1_350
+
 type SectorBounds = { start: number; end: number }
 
 const boundsAt = (index: number, total: number): SectorBounds => {
@@ -43,22 +45,47 @@ const mixBounds = (from: SectorBounds, to: SectorBounds, progress: number): Sect
   end: mix(from.end, to.end, progress),
 })
 
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
+
+const smoothstep = (value: number) => value * value * (3 - 2 * value)
+
+const phaseProgress = (progress: number, start: number, end: number) => {
+  const local = clamp01((progress - start) / Math.max(0.0001, end - start))
+  return smoothstep(local)
+}
+
+const nearestEquivalentBounds = (target: SectorBounds, current: SectorBounds): SectorBounds => {
+  const targetCenter = (target.start + target.end) / 2
+  const currentCenter = (current.start + current.end) / 2
+  const offset = Math.round((currentCenter - targetCenter) / 360) * 360
+  return { start: target.start + offset, end: target.end + offset }
+}
+
 const polar = (radius: number, angle: number) => {
   const radians = (angle * Math.PI) / 180
   return { x: CENTER + radius * Math.cos(radians), y: CENTER + radius * Math.sin(radians) }
 }
 
-const sectorPath = (start: number, end: number) => {
-  if (end - start >= 359.998) {
-    const first = polar(RADIUS, start)
-    const opposite = polar(RADIUS, start + 180)
-    return `M ${first.x} ${first.y} A ${RADIUS} ${RADIUS} 0 1 1 ${opposite.x} ${opposite.y} A ${RADIUS} ${RADIUS} 0 1 1 ${first.x} ${first.y} Z`
+const sectorPath = (start: number, end: number, innerRadius = 0, outerRadius = RADIUS) => {
+  if (end - start >= 359.998 && innerRadius <= 0.001) {
+    const first = polar(outerRadius, start)
+    const opposite = polar(outerRadius, start + 180)
+    return `M ${first.x} ${first.y} A ${outerRadius} ${outerRadius} 0 1 1 ${opposite.x} ${opposite.y} A ${outerRadius} ${outerRadius} 0 1 1 ${first.x} ${first.y} Z`
   }
-  const first = polar(RADIUS, start)
-  const last = polar(RADIUS, end)
+
+  const outerStart = polar(outerRadius, start)
+  const outerEnd = polar(outerRadius, end)
   const largeArc = end - start > 180 ? 1 : 0
-  return `M ${CENTER} ${CENTER} L ${first.x} ${first.y} A ${RADIUS} ${RADIUS} 0 ${largeArc} 1 ${last.x} ${last.y} Z`
+
+  if (innerRadius <= 0.001) {
+    return `M ${CENTER} ${CENTER} L ${outerStart.x} ${outerStart.y} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y} Z`
+  }
+
+  const innerEnd = polar(innerRadius, end)
+  const innerStart = polar(innerRadius, start)
+  return `M ${outerStart.x} ${outerStart.y} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y} L ${innerEnd.x} ${innerEnd.y} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y} Z`
 }
+
 
 const shortLabel = (label: string, total: number) => {
   const limit = total > 20 ? 9 : total > 12 ? 13 : 18
@@ -124,7 +151,7 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
 
     let frame = 0
     let startedAt = 0
-    const animationDuration = exitingItem ? 1_050 : 950
+    const animationDuration = exitingItem ? WHEEL_EXIT_DURATION : 950
     setLayoutProgress(0)
 
     const animateLayout = (now: number) => {
@@ -138,7 +165,6 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
     return () => cancelAnimationFrame(frame)
   }, [exitingItem, enteringItem])
 
-  const easedLayoutProgress = layoutProgress * layoutProgress * (3 - 2 * layoutProgress)
   const remainingItems = exitingItem ? items.filter((item) => item !== exitingItem) : items
   const previousItems = enteringItem ? items.filter((item) => item !== enteringItem) : items
   const renderedItems = exitingItem
@@ -147,21 +173,52 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
       ? [...previousItems, enteringItem]
       : items
 
+  const exitingIndex = exitingItem ? items.indexOf(exitingItem) : -1
+  const exitingBounds = exitingIndex >= 0 ? boundsAt(exitingIndex, items.length) : null
+  const exitingCenter = exitingBounds ? (exitingBounds.start + exitingBounds.end) / 2 : 0
+
+  const removalTargetBoundsFor = (item: string, current: SectorBounds): SectorBounds => {
+    if (!exitingItem || exitingIndex < 0 || !remainingItems.length) return current
+
+    // Keep the seam of the new layout on the exact centre line of the removed sector.
+    // This makes both neighbours close the gap symmetrically regardless of which
+    // sector (top / side / bottom) was removed.
+    const nextOriginalIndex = (exitingIndex + 1) % items.length
+    const nextItem = items[nextOriginalIndex]
+    const nextTargetIndex = remainingItems.indexOf(nextItem)
+    const targetIndex = remainingItems.indexOf(item)
+    const targetSize = 360 / remainingItems.length
+    const targetBase = exitingCenter - nextTargetIndex * targetSize
+    const rawTarget = {
+      start: targetBase + targetIndex * targetSize,
+      end: targetBase + (targetIndex + 1) * targetSize,
+    }
+
+    // Across the -180/180 seam, choose the equivalent angle closest to the
+    // current sector so nothing ever takes the long way around the wheel.
+    return nearestEquivalentBounds(rawTarget, current)
+  }
+
   const animatedBoundsFor = (item: string, index: number): SectorBounds => {
     const current = boundsAt(index, items.length)
 
     if (exitingItem) {
       if (item === exitingItem) {
         const center = (current.start + current.end) / 2
-        const closingProgress = Math.min(1, easedLayoutProgress / .28)
+        // Give the wedge enough time to become a thin radial strip instead of
+        // snapping shut. The strip itself stays centred on the same radial axis.
+        const closingProgress = phaseProgress(layoutProgress, 0, .48)
         return mixBounds(current, { start: center - 1.525, end: center + 1.525 }, closingProgress)
       }
-      const targetIndex = remainingItems.indexOf(item)
-      const reflowProgress = Math.max(0, Math.min(1, (easedLayoutProgress - .08) / .8))
-      return mixBounds(current, boundsAt(targetIndex, remainingItems.length), reflowProgress)
+
+      // Reflow over almost the entire transition so the wheel closes slowly.
+      // The target layout is centred on the removed sector, not on global -90deg.
+      const reflowProgress = phaseProgress(layoutProgress, .08, 1)
+      return mixBounds(current, removalTargetBoundsFor(item, current), reflowProgress)
     }
 
     if (enteringItem) {
+      const easedLayoutProgress = smoothstep(layoutProgress)
       if (item === enteringItem) {
         const center = (current.start + current.end) / 2
         const openingProgress = Math.max(0, Math.min(1, (easedLayoutProgress - .28) / .72))
@@ -274,11 +331,12 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
               const point = polar(items.length > 18 ? 155 : 150, animatedAngle)
               const normalizedAngle = (animatedAngle % 360 + 360) % 360
               const readableAngle = normalizedAngle > 90 && normalizedAngle < 270 ? animatedAngle + 180 : animatedAngle
-              let motionAngle = animatedAngle
-              if (item === exitingItem) {
-                const current = boundsAt(index, items.length)
-                motionAngle = (current.start + current.end) / 2
-              }
+              const motionAngle = item === exitingItem
+                ? (() => {
+                    const original = boundsAt(index, items.length)
+                    return (original.start + original.end) / 2
+                  })()
+                : animatedAngle
               const radians = (motionAngle * Math.PI) / 180
               const colorIndex = colorByItem.current.get(item) ?? index % COLORS.length
               const color = COLORS[colorIndex]
@@ -289,13 +347,22 @@ export function Wheel({ items, rotation, duration, spinning, selectedIndex, exit
                 '--pop-y': `${Math.sin(radians) * 13}px`,
                 '--fly-x': `${Math.cos(radians) * 175}px`,
                 '--fly-y': `${Math.sin(radians) * 175}px`,
-                '--exit-x': `${Math.cos(radians) * 105}px`,
-                '--exit-y': `${Math.sin(radians) * 105}px`,
-                '--exit-far-x': `${Math.cos(radians) * 205}px`,
-                '--exit-far-y': `${Math.sin(radians) * 205}px`,
                 '--sector-glow': color.glow,
+                '--exit-duration': `${WHEEL_EXIT_DURATION}ms`,
               } as CSSProperties
-              const path = sectorPath(start, end)
+
+              // Move the exiting strip by changing the SVG geometry itself rather
+              // than translating the <g>. That removes transform-origin/rotation
+              // differences: at every angle the strip starts at the hub and moves
+              // straight outward along its own radial centre line.
+              const exitProgress = item === exitingItem ? phaseProgress(layoutProgress, .42, 1) : 0
+              const radialTravel = exitProgress * 250
+              const path = sectorPath(
+                start,
+                end,
+                item === exitingItem ? radialTravel : 0,
+                item === exitingItem ? RADIUS + radialTravel : RADIUS,
+              )
               return (
                 <g
                   key={`${item}-${index}`}

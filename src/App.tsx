@@ -11,10 +11,40 @@ import {
   type EntropyReport,
   type SelectionMath,
 } from '../randomEngine'
-import { Wheel } from './Wheel'
+import { Wheel, WHEEL_EXIT_DURATION } from './Wheel'
 
 type Mode = 'single' | 'elimination'
 type HistoryItem = { name: string; removed: boolean; time: string }
+
+const WHEEL_EXIT_COMMIT_DELAY = 80
+
+const normalizeSignedAngle = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180
+
+const removalRotationCompensation = (items: string[], removedItem: string) => {
+  const total = items.length
+  const removedIndex = items.indexOf(removedItem)
+  if (total <= 1 || removedIndex < 0) return 0
+
+  const remainingItems = items.filter((item) => item !== removedItem)
+  if (!remainingItems.length) return 0
+
+  // Wheel.tsx closes the gap symmetrically around the centre line of the
+  // removed sector. That temporary layout has a different angular origin
+  // from the normal boundsAt(...), which always starts at -90deg.
+  // When the exiting item is finally removed from React state, compensate
+  // that origin difference with the wheel rotation so the picture on screen
+  // remains pixel-stable instead of snapping to the canonical -90deg layout.
+  const oldSlice = 360 / total
+  const newSlice = 360 / remainingItems.length
+  const removedCenter = -90 + (removedIndex + 0.5) * oldSlice
+
+  const nextOriginalIndex = (removedIndex + 1) % total
+  const nextItem = items[nextOriginalIndex]
+  const nextTargetIndex = remainingItems.indexOf(nextItem)
+  const temporaryLayoutStart = removedCenter - nextTargetIndex * newSlice
+
+  return normalizeSignedAngle(temporaryLayoutStart - (-90))
+}
 
 const DEFAULT_OPTIONS = `Пицца
 Суши
@@ -171,14 +201,18 @@ export function App() {
     setHistory((items) => [{ name: selected, removed, time: new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' }) }, ...items].slice(0, 20))
     if (removed) {
       setEliminated((items) => new Set(items).add(selected))
-      // The winning tile lifts and flies away before the wheel layout closes.
+      // Preserve the exact visual orientation reached by Wheel.tsx at the end
+      // of its symmetric gap-closing animation. Without this compensation,
+      // dropping exitingItem makes boundsAt(...) jump back to its -90deg seam.
+      const rotationCompensation = removalRotationCompensation(wheelItems, selected)
       cancelWheelRemoval()
       setExitingItem(selected)
       wheelRemovalTimer.current = window.setTimeout(() => {
+        setRotation((current) => current + rotationCompensation)
         setWheelItems((items) => items.filter((item) => item !== selected))
         setExitingItem(null)
         wheelRemovalTimer.current = null
-      }, 1_050)
+      }, WHEEL_EXIT_DURATION + WHEEL_EXIT_COMMIT_DELAY)
     }
     spinGuard.current = false
   }
@@ -233,13 +267,15 @@ export function App() {
     if (eliminated.has(item) || activeOptions.length <= 1 || spinning || waiting || wheelTransitioning) return
     cancelWheelRemoval()
     const next = new Set(eliminated).add(item)
+    const rotationCompensation = removalRotationCompensation(wheelItems, item)
     setEliminated(next)
     setExitingItem(item)
     wheelRemovalTimer.current = window.setTimeout(() => {
+      setRotation((current) => current + rotationCompensation)
       setWheelItems(options.filter((option) => !next.has(option)))
       setExitingItem(null)
       wheelRemovalTimer.current = null
-    }, 1_050)
+    }, WHEEL_EXIT_DURATION + WHEEL_EXIT_COMMIT_DELAY)
   }
 
   const restoreOption = (item: string) => {
